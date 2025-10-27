@@ -33,7 +33,6 @@
 
     .empty{padding:40px;text-align:center;color:var(--muted)}
 
-    /* pagination */
     .pager{display:flex;gap:8px;justify-content:center;margin:16px 0}
     .pager button{padding:8px 10px;border-radius:8px;border:1px solid #e6e9ef;background:white}
 
@@ -46,14 +45,13 @@
       <div class="logo">RSS</div>
       <div>
         <h1>RSS CSV ビューア — ばんちゃん専用☆</h1>
-        <p class="lead">CSV（Title,Link,Description,PubDate,Source 等）を同じフォルダに置いて deploy すれば動くよ〜</p>
+        <p class="lead">CSV（pubDate, title, link, description）を同じフォルダに置いて deploy すれば動くよ〜</p>
       </div>
       <div class="stats" id="stats">読み込み中…</div>
     </header>
 
     <div class="controls">
       <input type="search" id="q" placeholder="検索ワードを入力（タイトル・説明を検索）">
-      <select id="sourceFilter"><option value="">すべてのソース</option></select>
       <select id="sortBy"><option value="date_desc">日付（新しい順）</option><option value="date_asc">日付（古い順）</option><option value="title_asc">タイトル（昇順）</option></select>
       <button class="btn" id="reload">CSV 再読み込み</button>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
@@ -71,16 +69,13 @@
   </div>
 
   <script>
-  // シンプルな CSV パーサ（ヘッダあり）
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
     if (lines.length === 0) return [];
-    const header = splitCSVLine(lines[0]);
+    const header = lines[0].split(',');
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
-      const cols = splitCSVLine(lines[i]);
-      // 行の列数がヘッダより短ければ埋める
-      while (cols.length < header.length) cols.push('');
+      const cols = lines[i].split(',');
       const obj = {};
       header.forEach((h, idx) => obj[h.trim()] = cols[idx] ? cols[idx].trim() : '');
       rows.push(obj);
@@ -88,21 +83,7 @@
     return rows;
   }
 
-  // CSV 行を分割（ダブルクオート対応）
-  function splitCSVLine(line){
-    const res = []; let cur=''; let inQuotes=false;
-    for (let i=0;i<line.length;i++){
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQuotes && line[i+1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; }
-      } else if (ch === ',' && !inQuotes) { res.push(cur); cur=''; } else { cur += ch; }
-    }
-    res.push(cur);
-    return res;
-  }
-
-  // public functions
-  const CSV_PATH = './rss.csv'; // GitHub Pages に置く CSV の名前
+  const CSV_PATH = './rss.csv';
   let data = [];
   let filtered = [];
   const PAGE_SIZE = 18;
@@ -116,7 +97,6 @@
       const txt = await resp.text();
       data = parseCSV(txt).map(r => normalizeRow(r));
       document.getElementById('stats').textContent = '読み込み完了';
-      buildSourceFilter();
       applyAll();
     }catch(e){
       console.error(e);
@@ -127,16 +107,13 @@
   }
 
   function normalizeRow(r){
-    // 想定カラム: Title, Link, Description, PubDate, Source
     const out = {
-      Title: r.Title || r.title || r.title || '',
-      Link: r.Link || r.link || r.URL || r.Url || r.url || '',
-      Description: r.Description || r.description || r.Desc || '',
-      PubDate: r.PubDate || r.pubDate || r.Date || r.date || '',
-      Source: r.Source || r.source || r.Site || ''
+      title: r.title || '',
+      link: r.link || '',
+      description: r.description || '',
+      pubDate: r.pubDate || ''
     };
-    // 日付をパースしやすくする
-    out._ts = parseDateToTs(out.PubDate);
+    out._ts = parseDateToTs(out.pubDate);
     return out;
   }
 
@@ -144,33 +121,22 @@
     if (!s) return 0;
     const d = Date.parse(s);
     if (!isNaN(d)) return d;
-    // try common formats: YYYY-MM-DD HH:MM
     const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s*(\d{1,2}):(\d{2})/);
     if (m){ return new Date(m[1],m[2]-1,m[3],m[4],m[5]).getTime(); }
     return 0;
   }
 
-  function buildSourceFilter(){
-    const sel = document.getElementById('sourceFilter');
-    const sources = Array.from(new Set(data.map(d=>d.Source||'').filter(x=>x))).sort();
-    sel.innerHTML = '<option value="">すべてのソース</option>' + sources.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-  }
-
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\'":"&#39;","\"":"&quot;"}[c])); }
-
   function applyAll(){
     const q = document.getElementById('q').value.trim().toLowerCase();
-    const source = document.getElementById('sourceFilter').value;
     const sortBy = document.getElementById('sortBy').value;
     filtered = data.filter(item => {
-      if (source && (item.Source || '') !== source) return false;
       if (!q) return true;
-      return (item.Title || '').toLowerCase().includes(q) || (item.Description || '').toLowerCase().includes(q);
+      return (item.title || '').toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q);
     });
-    // sort
+
     if (sortBy === 'date_desc') filtered.sort((a,b)=> (b._ts||0)-(a._ts||0));
     else if (sortBy === 'date_asc') filtered.sort((a,b)=> (a._ts||0)-(b._ts||0));
-    else if (sortBy === 'title_asc') filtered.sort((a,b)=> (a.Title||'').localeCompare(b.Title||''));
+    else if (sortBy === 'title_asc') filtered.sort((a,b)=> (a.title||'').localeCompare(b.title||''));
 
     page = 1;
     renderList();
@@ -190,13 +156,14 @@
   }
 
   function cardHTML(it){
-    const title = escapeHtml(it.Title || '(無題)');
-    const desc = escapeHtml(it.Description || '');
-    const link = it.Link || '#';
-    const src = escapeHtml(it.Source || '');
-    const date = it._ts ? new Date(it._ts).toLocaleString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : (escapeHtml(it.PubDate||''));
-    return `\n      <article class="card">\n        <h3 title="${title}"><a href="${link}" target="_blank" rel="noopener noreferrer">${title}</a></h3>\n        <div class="meta"><span>${date}</span>${src?`<span>・${src}</span>`:''}</div>\n        <div class="desc">${desc}</div>\n        <div class="actions">\n          <a href="${link}" target="_blank" rel="noopener noreferrer">開く</a>\n          <a href="https://www.google.com/search?q=${encodeURIComponent(it.Title||it.Link||'')}" target="_blank" rel="noopener noreferrer">検索</a>\n          <span style="margin-left:auto;color:var(--muted);font-size:13px">${src?src:''}</span>\n        </div>\n      </article>`;
+    const title = escapeHtml(it.title || '(無題)');
+    const desc = escapeHtml(it.description || '');
+    const link = it.link || '#';
+    const date = it._ts ? new Date(it._ts).toLocaleString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : (escapeHtml(it.pubDate||''));
+    return `\n      <article class="card">\n        <h3 title="${title}"><a href="${link}" target="_blank" rel="noopener noreferrer">${title}</a></h3>\n        <div class="meta"><span>${date}</span></div>\n        <div class="desc">${desc}</div>\n        <div class="actions">\n          <a href="${link}" target="_blank" rel="noopener noreferrer">開く</a>\n          <a href="https://www.google.com/search?q=${encodeURIComponent(it.title||it.link||'')}" target="_blank" rel="noopener noreferrer">検索</a>\n        </div>\n      </article>`;
   }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\'":"&#39;","\"":"&quot;"}[c])); }
 
   function renderPager(){
     const pager = document.getElementById('pager');
@@ -221,13 +188,10 @@
     const btn = document.createElement('button'); btn.textContent = text; btn.addEventListener('click', onClick); return btn;
   }
 
-  // event bindings
   document.getElementById('q').addEventListener('input', ()=>{ applyAll(); });
-  document.getElementById('sourceFilter').addEventListener('change', ()=>{ applyAll(); });
   document.getElementById('sortBy').addEventListener('change', ()=>{ applyAll(); });
   document.getElementById('reload').addEventListener('click', ()=>{ loadCSV(); });
 
-  // initial load
   loadCSV();
   </script>
 </body>
