@@ -1,4 +1,4 @@
-PubDate,title,link,description
+pubDate,title,link,description
 "Mon, 27 Oct 2025 14:21:00 +0900",KLab、みんなで育てる“AIアイドル”発表　ファンのX投稿で姿や性格が変化,https://www.itmedia.co.jp/aiplus/articles/2510/27/news083.html,「Yahoo!フリマ」のLINE公式アカウントで、写真を送信すると、AIが相場価格・商品説明などを提案する「らくらくAI査定」機能がスタート。
 "Mon, 27 Oct 2025 14:50:00 +0900",Yahoo!フリマ、写真からAIが価格提案「らくらくAI査定」,https://www.itmedia.co.jp/aiplus/articles/2510/27/news085.html,「Yahoo!フリマ」のLINE公式アカウントで、写真を送信すると、AIが相場価格・商品説明などを提案する「らくらくAI査定」機能がスタート。
 "Mon, 27 Oct 2025 14:00:00 +0900",2026年末までに「AIによる死亡」に関する法的請求は2000件を超える,https://atmarkit.itmedia.co.jp/ait/articles/2510/27/news042.html,2027年までに、採用プロセスの75％に、実践的なAIスキルのテストが含まれる。
@@ -31,5 +31,6 @@ PubDate,title,link,description
 "Thu, 23 Oct 2025 08:00:00 +0900",M365 Copilotに間接的プロンプトインジェクションを可能にする脆弱性,https://www.itmedia.co.jp/enterprise/articles/2510/23/news025.html,M365 CopilotのMermaid描画機能に情報漏えいの脆弱性が存在し、間接的プロンプトインジェクションを通じて機密データが外部送信される恐れがあった。Microsoftは修正を実施し、動的要素を排除している。
 "Thu, 23 Oct 2025 06:22:00 +0900",Google、新量子アルゴリズム「Quantum Echoes」で検証可能な量子優位性を達成したと発表,https://www.itmedia.co.jp/news/articles/2510/23/news052.html,Googleは、新量子アルゴリズム「Quantum Echoes」の実行に成功したと発表した。スパコンを超える「検証可能な量子優位性」を史上初めて達成したとしている。従来比1万3000倍高速で、時間反転プロトコルを利用し、結果を検証可能にした。新薬開発や材料科学での分子モデリングなどへの応用を見込んでいる。
 "Wed, 22 Oct 2025 20:34:00 +0900",AIが京都と滋賀を“勘違い”？　Xに誤情報が掲載→京都市が注意喚起　「正しい発信をして」と同市,https://www.itmedia.co.jp/aiplus/articles/2510/22/news124.html,「SNSではすぐに（情報が）拡散されるので、正しい情報を発信してほしい」――京都府京都市の広報担当者は、X上に誤情報が掲載された件に対し、このように指摘した。
+
 
 
