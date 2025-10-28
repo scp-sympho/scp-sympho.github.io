@@ -2,17 +2,197 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>テスト</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RSS CSV ビューア</title>
+  <meta name="description" content="CSV(RSS)を読み込んで一覧表示するシンプルなページ。GitHub Pagesでそのまま使えます。">
   <style>
-    body{font-family:system-ui,-apple-system,"Helvetica Neue",Arial;
-         background:#fff0f5;padding:2rem;text-align:center;}
-    h1{color:#ff4081;}
-    p{font-size:1.1rem;}
+    :root{--bg:#f7fbff;--card:#ffffff;--accent:#ff66b3;--muted:#6b7280}
+    *{box-sizing:border-box}
+    body{font-family: "Noto Sans JP",system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:linear-gradient(180deg,var(--bg),#fff); color:#111}
+    .wrap{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;gap:16px;align-items:center}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#ffd7ee,#ffd1a8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#222}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:6px 0 18px;color:var(--muted)}
+
+    .controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+    .controls input[type="search"], .controls select {padding:10px 12px;border:1px solid #e6e9ef;border-radius:8px;font-size:14px}
+    .controls .btn{background:var(--accent);border:none;color:#fff;padding:10px 12px;border-radius:8px;cursor:pointer}
+    .stats{margin-left:auto;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 4px 14px rgba(16,24,40,0.04);display:flex;flex-direction:column;gap:8px}
+    .card h3{margin:0;font-size:16px}
+    .meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px}
+    .desc{font-size:14px;color:#333;line-height:1.4}
+    .actions{margin-top:auto;display:flex;gap:8px;align-items:center}
+    .actions a{padding:8px 10px;border-radius:8px;text-decoration:none;border:1px solid #eee;font-size:14px}
+    .pill{background:#f1f5f9;padding:6px 8px;border-radius:999px;font-size:12px}
+
+    .footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:right}
+
+    .empty{padding:40px;text-align:center;color:var(--muted)}
+
+    .pager{display:flex;gap:8px;justify-content:center;margin:16px 0}
+    .pager button{padding:8px 10px;border-radius:8px;border:1px solid #e6e9ef;background:white}
+
+    @media (max-width:520px){header{align-items:flex-start}.controls{flex-direction:column}.stats{margin-left:0}}
   </style>
 </head>
 <body>
-  <h1>テスト用サイト</h1>
-  <p>このページはGitHub Pagesで公開<br>HTTPS対応</p>
+  <div class="wrap">
+    <header>
+      <div class="logo">RSS</div>
+      <div>
+        <h1>RSS CSV ビューア</h1>
+        <p class="lead">CSV（date, title, link, description）を同じフォルダに置いて deploy すれば動くよ〜</p>
+      </div>
+      <div class="stats" id="stats">読み込み中…</div>
+    </header>
+
+    <div class="controls">
+      <input type="search" id="q" placeholder="検索ワードを入力（タイトル・説明を検索）">
+      <select id="sortBy"><option value="date_desc">日付（新しい順）</option><option value="date_asc">日付（古い順）</option><option value="title_asc">タイトル（昇順）</option></select>
+      <button class="btn" id="reload">CSV 再読み込み</button>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <div class="pill" id="countPill">0 件</div>
+      </div>
+    </div>
+
+    <main id="main">
+      <div id="list" class="grid"></div>
+      <div class="empty" id="empty" style="display:none">項目が見つかりません。</div>
+      <div class="pager" id="pager"></div>
+    </main>
+
+    <div class="footer">CSV ファイル名: <strong>rss.csv</strong> を置いてね。GitHub Pages に push すれば OK。</div>
+  </div>
+
+  <script>
+  function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+    if (lines.length === 0) return [];
+    const header = lines[0].split(',');
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      const obj = {};
+      header.forEach((h, idx) => obj[h.trim()] = cols[idx] ? cols[idx].trim() : '');
+      rows.push(obj);
+    }
+    return rows;
+  }
+
+  const CSV_PATH = './rss.csv';
+  let data = [];
+  let filtered = [];
+  const PAGE_SIZE = 18;
+  let page = 1;
+
+  async function loadCSV(){
+    document.getElementById('stats').textContent = 'CSV 読み込み中…';
+    try{
+      const resp = await fetch(CSV_PATH + '?_=' + Date.now());
+      if (!resp.ok) throw new Error('CSV が見つかりません: ' + resp.status);
+      const txt = await resp.text();
+      data = parseCSV(txt).map(r => normalizeRow(r));
+      document.getElementById('stats').textContent = '読み込み完了';
+      applyAll();
+    }catch(e){
+      console.error(e);
+      document.getElementById('stats').textContent = '読み込み失敗 — ' + e.message;
+      data = [];
+      applyAll();
+    }
+  }
+
+  function normalizeRow(r){
+    const out = {
+      title: r.title || '',
+      link: r.link || '',
+      description: r.description || '',
+      pubDate: r.pubDate || ''
+    };
+    out._ts = parseDateToTs(out.pubDate);
+    return out;
+  }
+
+  function parseDateToTs(s){
+    if (!s) return 0;
+    const d = Date.parse(s);
+    if (!isNaN(d)) return d;
+    const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s*(\d{1,2}):(\d{2})/);
+    if (m){ return new Date(m[1],m[2]-1,m[3],m[4],m[5]).getTime(); }
+    return 0;
+  }
+
+  function applyAll(){
+    const q = document.getElementById('q').value.trim().toLowerCase();
+    const sortBy = document.getElementById('sortBy').value;
+    filtered = data.filter(item => {
+      if (!q) return true;
+      return (item.title || '').toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q);
+    });
+
+    if (sortBy === 'date_desc') filtered.sort((a,b)=> (b._ts||0)-(a._ts||0));
+    else if (sortBy === 'date_asc') filtered.sort((a,b)=> (a._ts||0)-(b._ts||0));
+    else if (sortBy === 'title_asc') filtered.sort((a,b)=> (a.title||'').localeCompare(b.title||''));
+
+    page = 1;
+    renderList();
+  }
+
+  function renderList(){
+    const container = document.getElementById('list');
+    const empty = document.getElementById('empty');
+    const countPill = document.getElementById('countPill');
+    countPill.textContent = filtered.length + ' 件';
+    if (filtered.length === 0){ container.innerHTML = ''; empty.style.display = 'block'; renderPager(); return; }
+    empty.style.display = 'none';
+    const start = (page-1)*PAGE_SIZE; const end = start + PAGE_SIZE;
+    const pageItems = filtered.slice(start,end);
+    container.innerHTML = pageItems.map(it=>cardHTML(it)).join('');
+    renderPager();
+  }
+
+  function cardHTML(it){
+    const title = escapeHtml(it.title || '(無題)');
+    const desc = escapeHtml(it.description || '');
+    const link = it.link || '#';
+    const date = it._ts ? new Date(it._ts).toLocaleString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : (escapeHtml(it.pubDate||''));
+    return `\n      <article class="card">\n        <h3 title="${title}"><a href="${link}" target="_blank" rel="noopener noreferrer">${title}</a></h3>\n        <div class="meta"><span>${date}</span></div>\n        <div class="desc">${desc}</div>\n        <div class="actions">\n          <a href="${link}" target="_blank" rel="noopener noreferrer">開く</a>\n          <a href="https://www.google.com/search?q=${encodeURIComponent(it.title||it.link||'')}" target="_blank" rel="noopener noreferrer">検索</a>\n        </div>\n      </article>`;
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\'":"&#39;","\"":"&quot;"}[c])); }
+
+  function renderPager(){
+    const pager = document.getElementById('pager');
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    pager.innerHTML = '';
+    if (totalPages <= 1) return;
+    const first = createPagerBtn('≪', () => { page = 1; renderList(); });
+    const prev = createPagerBtn('‹', () => { if (page>1) page--; renderList(); });
+    pager.appendChild(first); pager.appendChild(prev);
+    const start = Math.max(1, page-2); const end = Math.min(totalPages, page+2);
+    for (let i=start;i<=end;i++){
+      const btn = createPagerBtn(i, ()=>{ page = i; renderList(); });
+      if (i===page) btn.style.fontWeight='700';
+      pager.appendChild(btn);
+    }
+    const next = createPagerBtn('›', ()=>{ if (page<totalPages) page++; renderList(); });
+    const last = createPagerBtn('≫', ()=>{ page = totalPages; renderList(); });
+    pager.appendChild(next); pager.appendChild(last);
+  }
+
+  function createPagerBtn(text, onClick){
+    const btn = document.createElement('button'); btn.textContent = text; btn.addEventListener('click', onClick); return btn;
+  }
+
+  document.getElementById('q').addEventListener('input', ()=>{ applyAll(); });
+  document.getElementById('sortBy').addEventListener('change', ()=>{ applyAll(); });
+  document.getElementById('reload').addEventListener('click', ()=>{ loadCSV(); });
+
+  loadCSV();
+  </script>
 </body>
 </html>
