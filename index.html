@@ -16,6 +16,13 @@
       text-align: center;
       color: #0078d7;
     }
+    .subtitle {
+      margin-top: -0.3em;
+      font-size: 0.95em;
+      color: #555;
+      text-align: center;
+      letter-spacing: 0.03em;
+    }
     .tabs {
       display: flex;
       justify-content: center;
@@ -96,7 +103,8 @@
   </style>
 </head>
 <body>
-  <h1>ニュース＆会社情報まとめ</h1>
+  <h1>ニュースサイトRSSビューア</h1>
+  <p class="subtitle">信頼できる情報を、より早く、より正確に。</p>
 
   <div class="tabs">
     <button id="tab-news" class="tab active">ニュース</button>
@@ -200,10 +208,12 @@
     function renderResearch() {
       const container = document.getElementById('research');
       container.innerHTML = '';
+      filteredResearch.sort((a,b) => parseDate(b.date)-parseDate(a.date));
       for (const item of filteredResearch) {
         const div = document.createElement('div');
         div.className = 'card';
         div.innerHTML = `
+          <div class="date">${item.date}</div>
           <a href="${item.link}" target="_blank">${item.company}</a>
           <p>${item.info}</p>
         `;
@@ -213,9 +223,7 @@
 
     function applyResearchFilters() {
       const company = document.getElementById('companyFilter').value;
-      const sort = document.getElementById('companySort').value;
       filteredResearch = allResearch.filter(r => company === 'all' || r.company === company);
-      filteredResearch.sort((a, b) => sort === 'asc' ? a.company.localeCompare(b.company) : b.company.localeCompare(a.company));
       renderResearch();
     }
 
@@ -237,7 +245,6 @@
     document.getElementById('next').addEventListener('click', () => { if (currentPage * ITEMS_PER_PAGE < filteredNews.length) { currentPage++; renderNews(); }});
 
     document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
-    document.getElementById('companySort').addEventListener('change', applyResearchFilters);
 
     document.getElementById('tab-news').addEventListener('click', () => {
       document.getElementById('tab-news').classList.add('active');
