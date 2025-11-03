@@ -5,7 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ニュース＆会社情報まとめ</title>
 <style>
-/* 省略: 以前と同じCSS */
+body { font-family: 'Segoe UI', sans-serif; background-color: #f7faff; margin:0; padding:20px; color:#333; }
+h1{text-align:center;color:#0078d7;}
+.subtitle{margin-top:-0.3em;font-size:0.95em;color:#555;text-align:center;letter-spacing:0.03em;}
+.tabs{display:flex;justify-content:center;gap:10px;margin-bottom:15px;}
+.tab{background:#e0ecff;border:none;border-radius:8px;padding:10px 15px;cursor:pointer;font-weight:bold;transition:0.2s;}
+.tab.active{background:#0078d7;color:white;}
+.controls{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+input,select,button{padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;}
+.news-list,.research-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:15px;}
+.card{background:white;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,0.1);padding:15px;transition:transform 0.2s;}
+.card:hover{transform:scale(1.02);}
+.card a{color:#0078d7;text-decoration:none;font-weight:bold;}
+.card a:hover{text-decoration:underline;}
+.date{color:#888;font-size:13px;margin-bottom:8px;}
+.pagination{text-align:center;margin-top:20px;}
+button.action{background-color:#0078d7;color:white;border:none;cursor:pointer;}
+button.action:hover{background-color:#005fa3;}
+button:disabled{background-color:#ccc;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -42,115 +59,109 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const ITEMS_PER_PAGE = 20;
-  let allNews = [], filteredNews = [], currentPage = 1;
-  let allResearch = [], filteredResearch = [];
+document.addEventListener('DOMContentLoaded', function(){
+  const ITEMS_PER_PAGE=20;
+  let allNews=[],filteredNews=[],currentPage=1;
+  let allResearch=[],filteredResearch=[];
 
-  async function loadCSV(file) {
-    const res = await fetch(file);
-    const text = await res.text();
-    const rows = text.split(/\\r?\\n/).filter(r => r.trim() !== '');
-    const headers = rows[0].split(',');
-    return rows.slice(1).map(r => {
-      const cols = r.split(',');
-      let obj = {};
-      headers.forEach((h, i) => obj[h.trim()] = (cols[i] || '').trim());
+  async function loadCSV(file){
+    const res=await fetch(file);
+    const text=await res.text();
+    const rows=text.split(/\r?\n/).filter(r=>r.trim()!=='');
+    const headers=rows[0].split(',');
+    return rows.slice(1).map(r=>{
+      const cols=r.split(',');
+      let obj={};
+      headers.forEach((h,i)=>obj[h.trim()]=(cols[i]||'').trim());
       return obj;
-    }).filter(obj => Object.keys(obj).length > 0);
+    }).filter(obj=>Object.keys(obj).length>0);
   }
 
-  function parseDate(dateStr) {
+  function parseDate(dateStr){
     if(!dateStr) return '';
-    const d = new Date(dateStr);
-    return isNaN(d) ? '' : dateStr;
+    const d=new Date(dateStr);
+    return isNaN(d)?'':dateStr;
   }
 
-  function renderNews() {
-    const container = document.getElementById('news');
-    container.innerHTML = '';
-    const start = (currentPage-1)*ITEMS_PER_PAGE;
-    const pageItems = filteredNews.slice(start, start+ITEMS_PER_PAGE);
-    pageItems.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.innerHTML = `
-        <div class="date">${parseDate(item.date)}</div>
-        <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
-        <p>${item.description || ''}</p>
-      `;
+  function renderNews(){
+    const container=document.getElementById('news');
+    container.innerHTML='';
+    const start=(currentPage-1)*ITEMS_PER_PAGE;
+    const pageItems=filteredNews.slice(start,start+ITEMS_PER_PAGE);
+    pageItems.forEach(item=>{
+      const div=document.createElement('div');
+      div.className='card';
+      div.innerHTML=`<div class="date">${parseDate(item.date)}</div><a href="${item.link}" target="_blank">${item.title||'(無題)'}</a><p>${item.description||''}</p>`;
       container.appendChild(div);
     });
-    document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredNews.length/ITEMS_PER_PAGE)}`;
-    document.getElementById('prev').disabled = currentPage===1;
-    document.getElementById('next').disabled = start+ITEMS_PER_PAGE >= filteredNews.length;
+    document.getElementById('pageInfo').textContent=`${currentPage} / ${Math.ceil(filteredNews.length/ITEMS_PER_PAGE)}`;
+    document.getElementById('prev').disabled=currentPage===1;
+    document.getElementById('next').disabled=start+ITEMS_PER_PAGE>=filteredNews.length;
   }
 
-  function applyNewsFilters() {
-    const query = document.getElementById('search').value.toLowerCase();
-    filteredNews = allNews.filter(r=>r.title.toLowerCase().includes(query)||r.description.toLowerCase().includes(query));
-    const sort = document.getElementById('sort').value;
+  function applyNewsFilters(){
+    const query=document.getElementById('search').value.toLowerCase();
+    filteredNews=allNews.filter(r=>r.title.toLowerCase().includes(query)||r.description.toLowerCase().includes(query));
+    const sort=document.getElementById('sort').value;
     filteredNews.sort((a,b)=>{
-      const da=new Date(a.date), db=new Date(b.date);
+      const da=new Date(a.date),db=new Date(b.date);
       return sort==='newest'?db-da:da-db;
     });
-    currentPage = 1;
+    currentPage=1;
     renderNews();
   }
 
-  function renderResearch() {
-    const container = document.getElementById('research');
-    container.innerHTML = '';
+  function renderResearch(){
+    const container=document.getElementById('research');
+    container.innerHTML='';
     filteredResearch.sort((a,b)=>new Date(b.date)-new Date(a.date));
     filteredResearch.forEach(item=>{
       const div=document.createElement('div');
       div.className='card';
-      div.innerHTML=`
-        <div class="date">${parseDate(item.date)}</div>
-        <a href="${item.link}" target="_blank">${item.company}</a>
-        <p>${item.info}</p>
-      `;
+      div.innerHTML=`<div class="date">${parseDate(item.date)}</div><a href="${item.link}" target="_blank">${item.company}</a><p>${item.info}</p>`;
       container.appendChild(div);
     });
   }
 
-  function applyResearchFilters() {
-    const company = document.getElementById('companyFilter').value;
-    filteredResearch = allResearch.filter(r=>company==='all'||r.company===company);
+  function applyResearchFilters(){
+    const company=document.getElementById('companyFilter').value;
+    filteredResearch=allResearch.filter(r=>company==='all'||r.company===company);
     renderResearch();
   }
 
-  async function refreshData() {
-    allNews = await loadCSV('rss.csv');
-    filteredNews = [...allNews];
+  async function refreshData(){
+    allNews=await loadCSV('rss.csv');
+    filteredNews=[...allNews];
     applyNewsFilters();
-    allResearch = await loadCSV('research.csv');
-    filteredResearch = [...allResearch];
-    const companies = [...new Set(allResearch.map(r=>r.company))].sort();
+
+    allResearch=await loadCSV('research.csv');
+    filteredResearch=[...allResearch];
+    const companies=[...new Set(allResearch.map(r=>r.company))].sort();
     const sel=document.getElementById('companyFilter');
     sel.innerHTML='<option value="all">全ての会社</option>'+companies.map(c=>`<option value="${c}">${c}</option>`).join('');
     applyResearchFilters();
   }
 
-  document.getElementById('search').addEventListener('input', applyNewsFilters);
-  document.getElementById('sort').addEventListener('change', applyNewsFilters);
-  document.getElementById('prev').addEventListener('click', ()=>{if(currentPage>1){currentPage--;renderNews();}});
-  document.getElementById('next').addEventListener('click', ()=>{if(currentPage*ITEMS_PER_PAGE<filteredNews.length){currentPage++;renderNews();}});
-  document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
+  document.getElementById('search').addEventListener('input',applyNewsFilters);
+  document.getElementById('sort').addEventListener('change',applyNewsFilters);
+  document.getElementById('prev').addEventListener('click',()=>{if(currentPage>1){currentPage--;renderNews();}});
+  document.getElementById('next').addEventListener('click',()=>{if(currentPage*ITEMS_PER_PAGE<filteredNews.length){currentPage++;renderNews();}});
+  document.getElementById('companyFilter').addEventListener('change',applyResearchFilters);
 
-  document.getElementById('tab-news').addEventListener('click', ()=>{
+  document.getElementById('tab-news').addEventListener('click',()=>{
     document.getElementById('tab-news').classList.add('active');
     document.getElementById('tab-research').classList.remove('active');
     document.getElementById('news-section').style.display='block';
     document.getElementById('research-section').style.display='none';
   });
-  document.getElementById('tab-research').addEventListener('click', ()=>{
+  document.getElementById('tab-research').addEventListener('click',()=>{
     document.getElementById('tab-research').classList.add('active');
     document.getElementById('tab-news').classList.remove('active');
     document.getElementById('news-section').style.display='none';
     document.getElementById('research-section').style.display='block';
   });
-  document.getElementById('refresh').addEventListener('click', refreshData);
+
+  document.getElementById('refresh').addEventListener('click',refreshData);
 
   refreshData();
 });
