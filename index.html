@@ -156,12 +156,13 @@
       return rows.slice(1).map(r => {
         const cols = r.split(',');
         let obj = {};
-        headers.forEach((h, i) => obj[h.trim()] = cols[i]?.trim() || '');
+        headers.forEach((h, i) => obj[h.trim()] = (cols[i] || '').trim());
         return obj;
-      });
+      }).filter(obj => obj.company); // 空行を除外
     }
 
     function parseDate(dateStr) {
+      if (!dateStr) return new Date();
       const d = new Date(dateStr);
       if (!isNaN(d)) return d;
       const ts = Date.parse(dateStr.replace(/-/g, '/'));
@@ -208,7 +209,7 @@
     function renderResearch() {
       const container = document.getElementById('research');
       container.innerHTML = '';
-      filteredResearch.sort((a,b) => parseDate(b.date)-parseDate(a.date));
+      filteredResearch.sort((a,b) => parseDate(b.date) - parseDate(a.date));
       for (const item of filteredResearch) {
         const div = document.createElement('div');
         div.className = 'card';
@@ -224,6 +225,7 @@
     function applyResearchFilters() {
       const company = document.getElementById('companyFilter').value;
       filteredResearch = allResearch.filter(r => company === 'all' || r.company === company);
+      filteredResearch.forEach(r => { if (!r.date) r.date = ''; });
       renderResearch();
     }
 
@@ -244,25 +246,4 @@
     document.getElementById('prev').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderNews(); }});
     document.getElementById('next').addEventListener('click', () => { if (currentPage * ITEMS_PER_PAGE < filteredNews.length) { currentPage++; renderNews(); }});
 
-    document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
-
-    document.getElementById('tab-news').addEventListener('click', () => {
-      document.getElementById('tab-news').classList.add('active');
-      document.getElementById('tab-research').classList.remove('active');
-      document.getElementById('news-section').style.display = 'block';
-      document.getElementById('research-section').style.display = 'none';
-    });
-
-    document.getElementById('tab-research').addEventListener('click', () => {
-      document.getElementById('tab-research').classList.add('active');
-      document.getElementById('tab-news').classList.remove('active');
-      document.getElementById('news-section').style.display = 'none';
-      document.getElementById('research-section').style.display = 'block';
-    });
-
-    document.getElementById('refresh').addEventListener('click', refreshData);
-
-    refreshData();
-  </script>
-</body>
-</html>
+    document.getElementById('companyFilter').addEventListener('change', applyResearch
