@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ニュースRSSまとめ</title>
+  <title>ニュース＆会社情報まとめ</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -16,6 +16,25 @@
       text-align: center;
       color: #0078d7;
     }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .tab {
+      background: #e0ecff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    .tab.active {
+      background: #0078d7;
+      color: white;
+    }
     .controls {
       display: flex;
       justify-content: center;
@@ -23,13 +42,13 @@
       margin-bottom: 20px;
       flex-wrap: wrap;
     }
-    input, select {
+    input, select, button {
       padding: 8px;
       border-radius: 8px;
       border: 1px solid #ccc;
       font-size: 14px;
     }
-    .news-list {
+    .news-list, .research-list {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 15px;
@@ -61,14 +80,14 @@
       text-align: center;
       margin-top: 20px;
     }
-    button {
-      margin: 5px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
+    button.action {
       background-color: #0078d7;
       color: white;
+      border: none;
       cursor: pointer;
+    }
+    button.action:hover {
+      background-color: #005fa3;
     }
     button:disabled {
       background-color: #ccc;
@@ -77,29 +96,52 @@
   </style>
 </head>
 <body>
-  <h1>ニュースRSSまとめ</h1>
-  <div class="controls">
-    <input type="text" id="search" placeholder="キーワード検索...">
-    <select id="sort">
-      <option value="newest">新しい順</option>
-      <option value="oldest">古い順</option>
-    </select>
+  <h1>ニュース＆会社情報まとめ</h1>
+
+  <div class="tabs">
+    <button id="tab-news" class="tab active">ニュース</button>
+    <button id="tab-research" class="tab">会社情報</button>
+    <button id="refresh" class="action">🔄 更新</button>
   </div>
-  <div id="news" class="news-list"></div>
-  <div class="pagination">
-    <button id="prev">前へ</button>
-    <span id="pageInfo"></span>
-    <button id="next">次へ</button>
+
+  <!-- ニュース表示エリア -->
+  <div id="news-section">
+    <div class="controls">
+      <input type="text" id="search" placeholder="キーワード検索...">
+      <select id="sort">
+        <option value="newest">新しい順</option>
+        <option value="oldest">古い順</option>
+      </select>
+    </div>
+    <div id="news" class="news-list"></div>
+    <div class="pagination">
+      <button id="prev">前へ</button>
+      <span id="pageInfo"></span>
+      <button id="next">次へ</button>
+    </div>
+  </div>
+
+  <!-- 会社情報表示エリア -->
+  <div id="research-section" style="display:none;">
+    <div class="controls">
+      <select id="companyFilter">
+        <option value="all">全ての会社</option>
+      </select>
+      <select id="companySort">
+        <option value="asc">会社名A→Z</option>
+        <option value="desc">会社名Z→A</option>
+      </select>
+    </div>
+    <div id="research" class="research-list"></div>
   </div>
 
   <script>
     const ITEMS_PER_PAGE = 20;
-    let allData = [];
-    let filtered = [];
-    let currentPage = 1;
+    let allNews = [], filteredNews = [], currentPage = 1;
+    let allResearch = [], filteredResearch = [];
 
-    async function loadCSV() {
-      const res = await fetch('rss.csv');
+    async function loadCSV(file) {
+      const res = await fetch(file);
       const text = await res.text();
       const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
       const headers = rows[0].split(',');
@@ -118,12 +160,12 @@
       return isNaN(ts) ? new Date() : new Date(ts);
     }
 
-    function render() {
+    function renderNews() {
       const container = document.getElementById('news');
       container.innerHTML = '';
       const start = (currentPage - 1) * ITEMS_PER_PAGE;
       const end = start + ITEMS_PER_PAGE;
-      const pageItems = filtered.slice(start, end);
+      const pageItems = filteredNews.slice(start, end);
       for (const item of pageItems) {
         const div = document.createElement('div');
         div.className = 'card';
@@ -134,47 +176,86 @@
         `;
         container.appendChild(div);
       }
-      document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filtered.length / ITEMS_PER_PAGE)}`;
+      document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredNews.length / ITEMS_PER_PAGE)}`;
       document.getElementById('prev').disabled = currentPage === 1;
-      document.getElementById('next').disabled = end >= filtered.length;
+      document.getElementById('next').disabled = end >= filteredNews.length;
     }
 
-    function applyFilters() {
+    function applyNewsFilters() {
       const query = document.getElementById('search').value.toLowerCase();
-      filtered = allData.filter(r =>
+      filteredNews = allNews.filter(r =>
         r.title.toLowerCase().includes(query) ||
         r.description.toLowerCase().includes(query)
       );
       const sort = document.getElementById('sort').value;
-      filtered.sort((a, b) => {
+      filteredNews.sort((a, b) => {
         const da = parseDate(a.date);
         const db = parseDate(b.date);
         return sort === 'newest' ? db - da : da - db;
       });
       currentPage = 1;
-      render();
+      renderNews();
     }
 
-    document.getElementById('search').addEventListener('input', applyFilters);
-    document.getElementById('sort').addEventListener('change', applyFilters);
-    document.getElementById('prev').addEventListener('click', () => {
-      if (currentPage > 1) {
-        currentPage--;
-        render();
+    function renderResearch() {
+      const container = document.getElementById('research');
+      container.innerHTML = '';
+      for (const item of filteredResearch) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <a href="${item.link}" target="_blank">${item.company}</a>
+          <p>${item.info}</p>
+        `;
+        container.appendChild(div);
       }
-    });
-    document.getElementById('next').addEventListener('click', () => {
-      if (currentPage * ITEMS_PER_PAGE < filtered.length) {
-        currentPage++;
-        render();
-      }
+    }
+
+    function applyResearchFilters() {
+      const company = document.getElementById('companyFilter').value;
+      const sort = document.getElementById('companySort').value;
+      filteredResearch = allResearch.filter(r => company === 'all' || r.company === company);
+      filteredResearch.sort((a, b) => sort === 'asc' ? a.company.localeCompare(b.company) : b.company.localeCompare(a.company));
+      renderResearch();
+    }
+
+    async function refreshData() {
+      allNews = await loadCSV('rss.csv');
+      filteredNews = [...allNews];
+      applyNewsFilters();
+      allResearch = await loadCSV('research.csv');
+      filteredResearch = [...allResearch];
+      const companies = [...new Set(allResearch.map(r => r.company))].sort();
+      const sel = document.getElementById('companyFilter');
+      sel.innerHTML = '<option value="all">全ての会社</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
+      applyResearchFilters();
+    }
+
+    document.getElementById('search').addEventListener('input', applyNewsFilters);
+    document.getElementById('sort').addEventListener('change', applyNewsFilters);
+    document.getElementById('prev').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderNews(); }});
+    document.getElementById('next').addEventListener('click', () => { if (currentPage * ITEMS_PER_PAGE < filteredNews.length) { currentPage++; renderNews(); }});
+
+    document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
+    document.getElementById('companySort').addEventListener('change', applyResearchFilters);
+
+    document.getElementById('tab-news').addEventListener('click', () => {
+      document.getElementById('tab-news').classList.add('active');
+      document.getElementById('tab-research').classList.remove('active');
+      document.getElementById('news-section').style.display = 'block';
+      document.getElementById('research-section').style.display = 'none';
     });
 
-    loadCSV().then(data => {
-      allData = data;
-      filtered = [...allData];
-      applyFilters();
+    document.getElementById('tab-research').addEventListener('click', () => {
+      document.getElementById('tab-research').classList.add('active');
+      document.getElementById('tab-news').classList.remove('active');
+      document.getElementById('news-section').style.display = 'none';
+      document.getElementById('research-section').style.display = 'block';
     });
+
+    document.getElementById('refresh').addEventListener('click', refreshData);
+
+    refreshData();
   </script>
 </body>
 </html>
