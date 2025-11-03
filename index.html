@@ -102,148 +102,105 @@
     }
   </style>
 </head>
-<body>
-  <h1>ニュースサイトRSSビューア</h1>
-  <p class="subtitle">信頼できる情報を、より早く、より正確に。</p>
+body { font-family: 'Segoe UI', sans-serif; background-color: #f7faff; margin:0; padding:20px; color:#333; }
+const ITEMS_PER_PAGE=20;
+let allNews=[],filteredNews=[],currentPage=1;
+let allResearch=[],filteredResearch=[];
 
-  <div class="tabs">
-    <button id="tab-news" class="tab active">ニュース</button>
-    <button id="tab-research" class="tab">会社情報</button>
-    <button id="refresh" class="action">🔄 更新</button>
-  </div>
 
-  <!-- ニュース表示エリア -->
-  <div id="news-section">
-    <div class="controls">
-      <input type="text" id="search" placeholder="キーワード検索...">
-      <select id="sort">
-        <option value="newest">新しい順</option>
-        <option value="oldest">古い順</option>
-      </select>
-    </div>
-    <div id="news" class="news-list"></div>
-    <div class="pagination">
-      <button id="prev">前へ</button>
-      <span id="pageInfo"></span>
-      <button id="next">次へ</button>
-    </div>
-  </div>
+async function loadCSV(file){
+const res=await fetch(file);
+const text=await res.text();
+const rows=text.split(/\r?\n/).filter(r=>r.trim()!== '');
+const headers=rows[0].split(',');
+return rows.slice(1).map(r=>{
+const cols=r.split(',');
+let obj={};
+headers.forEach((h,i)=>obj[h.trim()]=(cols[i]||'').trim());
+return obj;
+}).filter(obj=>Object.keys(obj).length>0);
+}
 
-  <!-- 会社情報表示エリア -->
-  <div id="research-section" style="display:none;">
-    <div class="controls">
-      <select id="companyFilter">
-        <option value="all">全ての会社</option>
-      </select>
-      <select id="companySort">
-        <option value="asc">会社名A→Z</option>
-        <option value="desc">会社名Z→A</option>
-      </select>
-    </div>
-    <div id="research" class="research-list"></div>
-  </div>
 
-  <script>
-    const ITEMS_PER_PAGE = 20;
-    let allNews = [], filteredNews = [], currentPage = 1;
-    let allResearch = [], filteredResearch = [];
+function parseDate(dateStr){if(!dateStr)return ''; const d=new Date(dateStr); return isNaN(d)?'':dateStr;}
 
-    async function loadCSV(file) {
-      const res = await fetch(file);
-      const text = await res.text();
-      const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
-      const headers = rows[0].split(',');
-      return rows.slice(1).map(r => {
-        const cols = r.split(',');
-        let obj = {};
-        headers.forEach((h, i) => obj[h.trim()] = (cols[i] || '').trim());
-        return obj;
-      }).filter(obj => obj.company); // 空行を除外
-    }
 
-    function parseDate(dateStr) {
-      if (!dateStr) return new Date();
-      const d = new Date(dateStr);
-      if (!isNaN(d)) return d;
-      const ts = Date.parse(dateStr.replace(/-/g, '/'));
-      return isNaN(ts) ? new Date() : new Date(ts);
-    }
+function renderNews(){
+const container=document.getElementById('news'); container.innerHTML='';
+const start=(currentPage-1)*ITEMS_PER_PAGE;
+const pageItems=filteredNews.slice(start,start+ITEMS_PER_PAGE);
+pageItems.forEach(item=>{
+const div=document.createElement('div'); div.className='card';
+div.innerHTML=`<div class="date">${parseDate(item.date)}</div><a href="${item.link}" target="_blank">${item.title||'(無題)'}</a><p>${item.description||''}</p>`;
+container.appendChild(div);
+});
+document.getElementById('pageInfo').textContent=`${currentPage} / ${Math.ceil(filteredNews.length/ITEMS_PER_PAGE)}`;
+document.getElementById('prev').disabled=currentPage===1;
+document.getElementById('next').disabled=start+ITEMS_PER_PAGE>=filteredNews.length;
+}
 
-    function renderNews() {
-      const container = document.getElementById('news');
-      container.innerHTML = '';
-      const start = (currentPage - 1) * ITEMS_PER_PAGE;
-      const end = start + ITEMS_PER_PAGE;
-      const pageItems = filteredNews.slice(start, end);
-      for (const item of pageItems) {
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerHTML = `
-          <div class="date">${item.date}</div>
-          <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
-          <p>${item.description || ''}</p>
-        `;
-        container.appendChild(div);
-      }
-      document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredNews.length / ITEMS_PER_PAGE)}`;
-      document.getElementById('prev').disabled = currentPage === 1;
-      document.getElementById('next').disabled = end >= filteredNews.length;
-    }
 
-    function applyNewsFilters() {
-      const query = document.getElementById('search').value.toLowerCase();
-      filteredNews = allNews.filter(r =>
-        r.title.toLowerCase().includes(query) ||
-        r.description.toLowerCase().includes(query)
-      );
-      const sort = document.getElementById('sort').value;
-      filteredNews.sort((a, b) => {
-        const da = parseDate(a.date);
-        const db = parseDate(b.date);
-        return sort === 'newest' ? db - da : da - db;
-      });
-      currentPage = 1;
-      renderNews();
-    }
+function applyNewsFilters(){
+const query=document.getElementById('search').value.toLowerCase();
+filteredNews=allNews.filter(r=>r.title.toLowerCase().includes(query)||r.description.toLowerCase().includes(query));
+const sort=document.getElementById('sort').value;
+filteredNews.sort((a,b)=>{const da=new Date(a.date),db=new Date(b.date); return sort==='newest'?db-da:da-db;});
+currentPage=1; renderNews();
+}
 
-    function renderResearch() {
-      const container = document.getElementById('research');
-      container.innerHTML = '';
-      filteredResearch.sort((a,b) => parseDate(b.date) - parseDate(a.date));
-      for (const item of filteredResearch) {
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerHTML = `
-          <div class="date">${item.date}</div>
-          <a href="${item.link}" target="_blank">${item.company}</a>
-          <p>${item.info}</p>
-        `;
-        container.appendChild(div);
-      }
-    }
 
-    function applyResearchFilters() {
-      const company = document.getElementById('companyFilter').value;
-      filteredResearch = allResearch.filter(r => company === 'all' || r.company === company);
-      filteredResearch.forEach(r => { if (!r.date) r.date = ''; });
-      renderResearch();
-    }
+function renderResearch(){
+const container=document.getElementById('research'); container.innerHTML='';
+filteredResearch.sort((a,b)=>new Date(b.date)-new Date(a.date));
+filteredResearch.forEach(item=>{
+const div=document.createElement('div'); div.className='card';
+div.innerHTML=`<div class="date">${parseDate(item.date)}</div><a href="${item.link}" target="_blank">${item.company}</a><p>${item.info}</p>`;
+container.appendChild(div);
+});
+}
 
-    async function refreshData() {
-      allNews = await loadCSV('rss.csv');
-      filteredNews = [...allNews];
-      applyNewsFilters();
-      allResearch = await loadCSV('research.csv');
-      filteredResearch = [...allResearch];
-      const companies = [...new Set(allResearch.map(r => r.company))].sort();
-      const sel = document.getElementById('companyFilter');
-      sel.innerHTML = '<option value="all">全ての会社</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
-      applyResearchFilters();
-    }
 
-    document.getElementById('search').addEventListener('input', applyNewsFilters);
-    document.getElementById('sort').addEventListener('change', applyNewsFilters);
-    document.getElementById('prev').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderNews(); }});
-    document.getElementById('next').addEventListener('click', () => { if (currentPage * ITEMS_PER_PAGE < filteredNews.length) { currentPage++; renderNews(); }});
+function applyResearchFilters(){
+const company=document.getElementById('companyFilter').value;
+filteredResearch=allResearch.filter(r=>company==='all'||r.company===company);
+renderResearch();
+}
 
-    document.getElementById('companyFilter').addEventListener('change', applyResearch
+
+async function refreshData(){
+allNews=await loadCSV('rss.csv'); filteredNews=[...allNews]; applyNewsFilters();
+allResearch=await loadCSV('research.csv'); filteredResearch=[...allResearch];
+const companies=[...new Set(allResearch.map(r=>r.company))].sort();
+const sel=document.getElementById('companyFilter');
+sel.innerHTML='<option value="all">全ての会社</option>'+companies.map(c=>`<option value="${c}">${c}</option>`).join('');
+applyResearchFilters();
+}
+
+
+document.getElementById('search').addEventListener('input',applyNewsFilters);
+document.getElementById('sort').addEventListener('change',applyNewsFilters);
+document.getElementById('prev').addEventListener('click',()=>{if(currentPage>1){currentPage--;renderNews();}});
+document.getElementById('next').addEventListener('click',()=>{if(currentPage*ITEMS_PER_PAGE<filteredNews.length){currentPage++;renderNews();}});
+document.getElementById('companyFilter').addEventListener('change',applyResearchFilters);
+
+
+document.getElementById('tab-news').addEventListener('click',()=>{
+document.getElementById('tab-news').classList.add('active');
+document.getElementById('tab-research').classList.remove('active');
+document.getElementById('news-section').style.display='block';
+document.getElementById('research-section').style.display='none';
+});
+document.getElementById('tab-research').addEventListener('click',()=>{
+document.getElementById('tab-research').classList.add('active');
+document.getElementById('tab-news').classList.remove('active');
+document.getElementById('news-section').style.display='none';
+document.getElementById('research-section').style.display='block';
+});
+document.getElementById('refresh').addEventListener('click',refreshData);
+
+
+refreshData();
+});
+</script>
+</body>
+</html>
