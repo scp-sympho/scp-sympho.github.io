@@ -77,8 +77,7 @@ input, select, button {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     padding: 15px;
     transition: transform 0.2s;
-    position: relative;    /* バッジをカード上に配置するため */
-    overflow: visible;     /* バッジがカード外にはみ出せるように */
+    position: relative; /* New! バッジ用 */
 }
 
 .card:hover {
@@ -129,27 +128,24 @@ button:disabled {
     cursor: not-allowed;
 }
 
-/* 今日の記事用バッジ */
+/* New! バッジ */
 .new-badge {
     position: absolute;
-    top: -10px;
+    top: 10px;
     right: -10px;
-    background-color: #e53935;
+    background: red;
     color: white;
     font-size: 12px;
     font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transform: rotate(-15deg);
-    animation: float 1.2s infinite alternate;
-    z-index: 2;
+    padding: 3px 6px;
+    border-radius: 5px;
+    transform: rotate(15deg);
+    animation: bounce 1s infinite alternate;
 }
 
-@keyframes float {
-    0%   { transform: rotate(-15deg) translate(0,0); }
-    50%  { transform: rotate(-15deg) translate(-3px,-5px); }
-    100% { transform: rotate(-15deg) translate(0,0); }
+@keyframes bounce {
+    0% { transform: translateY(0) rotate(15deg); }
+    100% { transform: translateY(-5px) rotate(15deg); }
 }
 </style>
 </head>
@@ -215,27 +211,28 @@ document.addEventListener('DOMContentLoaded', function() {
         return isNaN(d) ? '' : dateStr;
     }
 
+    function isToday(dateStr) {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        const today = new Date();
+        return d.getFullYear() === today.getFullYear() &&
+               d.getMonth() === today.getMonth() &&
+               d.getDate() === today.getDate();
+    }
+
     function renderNews() {
         const container = document.getElementById('news');
         container.innerHTML = '';
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         const pageItems = filteredNews.slice(start, start + ITEMS_PER_PAGE);
 
-        const todayStr = new Date().toISOString().slice(0,10);
-
         pageItems.forEach(item => {
             const div = document.createElement('div');
             div.className = 'card';
-
-            let badgeHTML = '';
-            if(item.date === todayStr){
-                badgeHTML = `<div class="new-badge">New!</div>`;
-            }
-
             div.innerHTML = `
-                ${badgeHTML}
                 <div class="date">${parseDate(item.date)}</div>
                 <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
+                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
                 <p>${item.description || ''}</p>
                 <div class="source">出典：${item.source || '不明'}</div>
             `;
