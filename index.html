@@ -345,13 +345,22 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- ▼ Viewer カウンター -->
 <script>
 (async () => {
-  const namespace = 'scp-sympho';
-  const key = 'visitor_count';
-  const res = await fetch(`https://api.countapi.xyz/hit/${namespace}/${key}`);
-  const data = await res.json();
-  document.getElementById('visit-count').textContent = data.value.toLocaleString();
+  // namespace と key は自由に変更可（他人とかぶらないものに）
+  const namespace = 'scp-sympho-github';
+  const key = 'page_view_count';
+  const url = `https://api.countapi.xyz/hit/${namespace}/${key}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    document.getElementById('visit-count').textContent = data.value.toLocaleString();
+  } catch (e) {
+    document.getElementById('visit-count').textContent = '取得失敗';
+    console.error('CountAPI Error:', e);
+  }
 })();
 </script>
+
 
 </body>
 </html>
