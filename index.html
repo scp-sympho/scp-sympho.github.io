@@ -97,6 +97,13 @@ input, select, button {
     margin-bottom: 8px;
 }
 
+.source {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #555;
+    font-style: italic;
+}
+
 .pagination {
     text-align: center;
     margin-top: 20px;
@@ -190,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="date">${parseDate(item.date)}</div>
                 <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
                 <p>${item.description || ''}</p>
+                <div class="source">出典：${item.source || '不明'}</div>
             `;
             container.appendChild(div);
         });
