@@ -146,6 +146,9 @@ button:disabled {
             <option value="newest">新しい順</option>
             <option value="oldest">古い順</option>
         </select>
+        <select id="sourceFilter">
+            <option value="all">全ての出典</option>
+        </select>
     </div>
     <div id="news" class="news-list"></div>
     <div class="pagination">
@@ -210,12 +213,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function applyNewsFilters() {
         const query = document.getElementById('search').value.toLowerCase();
-        filteredNews = allNews.filter(r => r.title.toLowerCase().includes(query) || r.description.toLowerCase().includes(query));
+        const selectedSource = document.getElementById('sourceFilter').value;
+
+        filteredNews = allNews.filter(r => {
+            const matchKeyword = r.title.toLowerCase().includes(query) || r.description.toLowerCase().includes(query);
+            const matchSource = selectedSource === 'all' || r.source === selectedSource;
+            return matchKeyword && matchSource;
+        });
+
         const sort = document.getElementById('sort').value;
         filteredNews.sort((a,b) => {
             const da = new Date(a.date), db = new Date(b.date);
             return sort === 'newest' ? db - da : da - db;
         });
+
         currentPage = 1;
         renderNews();
     }
@@ -246,6 +257,10 @@ document.addEventListener('DOMContentLoaded', function() {
         allNews = await loadCSV('rss.csv');
         filteredNews = [...allNews];
         applyNewsFilters();
+        const sources = [...new Set(allNews.map(r => r.source).filter(s => s))].sort();
+        const sourceSel = document.getElementById('sourceFilter');
+        sourceSel.innerHTML = '<option value="all">全ての出典</option>' + 
+            sources.map(s => `<option value="${s}">${s}</option>`).join('');
 
         allResearch = await loadCSV('research.csv');
         filteredResearch = [...allResearch];
@@ -259,6 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('sort').addEventListener('change', applyNewsFilters);
     document.getElementById('prev').addEventListener('click', ()=>{if(currentPage>1){currentPage--;renderNews();}});
     document.getElementById('next').addEventListener('click', ()=>{if(currentPage*ITEMS_PER_PAGE<filteredNews.length){currentPage++;renderNews();}});
+    document.getElementById('sourceFilter').addEventListener('change', applyNewsFilters);
     document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
 
     document.getElementById('tab-news').addEventListener('click', ()=>{
