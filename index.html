@@ -70,6 +70,8 @@ input, select, button {
 }
 
 .card {
+    display: flex;
+    flex-direction: column;
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -95,6 +97,13 @@ input, select, button {
     color: #888;
     font-size: 13px;
     margin-bottom: 8px;
+}
+
+.source {
+    margin-top: auto;
+    font-size: 12px;
+    color: #888;
+    text-align: right;
 }
 
 .pagination {
@@ -190,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="date">${parseDate(item.date)}</div>
                 <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
                 <p>${item.description || ''}</p>
+                <div class="source">出典：${item.source || '不明'}</div>
             `;
             container.appendChild(div);
         });
