@@ -77,6 +77,8 @@ input, select, button {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     padding: 15px;
     transition: transform 0.2s;
+    position: relative;    /* バッジをカード上に配置するため */
+    overflow: visible;     /* バッジがカード外にはみ出せるように */
 }
 
 .card:hover {
@@ -125,6 +127,29 @@ button.action:hover {
 button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
+}
+
+/* 今日の記事用バッジ */
+.new-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #e53935;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transform: rotate(-15deg);
+    animation: float 1.2s infinite alternate;
+    z-index: 2;
+}
+
+@keyframes float {
+    0%   { transform: rotate(-15deg) translate(0,0); }
+    50%  { transform: rotate(-15deg) translate(-3px,-5px); }
+    100% { transform: rotate(-15deg) translate(0,0); }
 }
 </style>
 </head>
@@ -195,10 +220,20 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = '';
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         const pageItems = filteredNews.slice(start, start + ITEMS_PER_PAGE);
+
+        const todayStr = new Date().toISOString().slice(0,10);
+
         pageItems.forEach(item => {
             const div = document.createElement('div');
             div.className = 'card';
+
+            let badgeHTML = '';
+            if(item.date === todayStr){
+                badgeHTML = `<div class="new-badge">New!</div>`;
+            }
+
             div.innerHTML = `
+                ${badgeHTML}
                 <div class="date">${parseDate(item.date)}</div>
                 <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
                 <p>${item.description || ''}</p>
@@ -206,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             container.appendChild(div);
         });
+
         document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredNews.length / ITEMS_PER_PAGE)}`;
         document.getElementById('prev').disabled = currentPage === 1;
         document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredNews.length;
