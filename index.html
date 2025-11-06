@@ -16,6 +16,15 @@ body {
 h1 {
     text-align: center;
     color: #0078d7;
+    position: relative;
+}
+
+.viewer-counter {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    font-size: 12px;
+    color: #888;
 }
 
 .subtitle {
@@ -77,7 +86,8 @@ input, select, button {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     padding: 15px;
     transition: transform 0.2s;
-    position: relative; /* New! バッジ用 */
+    position: relative;
+    overflow: visible;
 }
 
 .card:hover {
@@ -107,6 +117,24 @@ input, select, button {
     text-align: right;
 }
 
+.new-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: red;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 8px;
+    animation: floatBadge 1.5s ease-in-out infinite;
+}
+
+@keyframes floatBadge {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
 .pagination {
     text-align: center;
     margin-top: 20px;
@@ -127,31 +155,14 @@ button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
 }
-
-/* New! バッジ */
-.new-badge {
-    position: absolute;
-    top: 10px;
-    right: -10px;
-    background: red;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-    padding: 3px 6px;
-    border-radius: 5px;
-    transform: rotate(15deg);
-    animation: bounce 1s infinite alternate;
-}
-
-@keyframes bounce {
-    0% { transform: translateY(0) rotate(15deg); }
-    100% { transform: translateY(-5px) rotate(15deg); }
-}
 </style>
 </head>
 <body>
 
-<h1>ニュースサイトRSSビューア</h1>
+<h1>
+    ニュースサイトRSSビューア
+    <span class="viewer-counter">Viewer</span>
+</h1>
 <p class="subtitle">信頼できる情報を、より早く、より正確に。</p>
 
 <div class="tabs">
@@ -169,6 +180,11 @@ button:disabled {
         </select>
         <select id="sourceFilter">
             <option value="all">全ての出典</option>
+        </select>
+        <select id="itemsPerPage">
+            <option value="20">20件表示</option>
+            <option value="50" selected>50件表示</option>
+            <option value="100">100件表示</option>
         </select>
     </div>
     <div id="news" class="news-list"></div>
@@ -188,7 +204,7 @@ button:disabled {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ITEMS_PER_PAGE = 20;
+    let ITEMS_PER_PAGE = parseInt(document.getElementById('itemsPerPage').value);
     let allNews = [], filteredNews = [], currentPage = 1;
     let allResearch = [], filteredResearch = [];
 
@@ -212,12 +228,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function isToday(dateStr) {
-        if (!dateStr) return false;
         const d = new Date(dateStr);
-        const today = new Date();
-        return d.getFullYear() === today.getFullYear() &&
-               d.getMonth() === today.getMonth() &&
-               d.getDate() === today.getDate();
+        const now = new Date();
+        return d.getFullYear() === now.getFullYear() &&
+               d.getMonth() === now.getMonth() &&
+               d.getDate() === now.getDate();
     }
 
     function renderNews() {
@@ -225,20 +240,18 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = '';
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         const pageItems = filteredNews.slice(start, start + ITEMS_PER_PAGE);
-
         pageItems.forEach(item => {
             const div = document.createElement('div');
             div.className = 'card';
             div.innerHTML = `
+                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
                 <div class="date">${parseDate(item.date)}</div>
                 <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
-                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
                 <p>${item.description || ''}</p>
                 <div class="source">出典：${item.source || '不明'}</div>
             `;
             container.appendChild(div);
         });
-
         document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredNews.length / ITEMS_PER_PAGE)}`;
         document.getElementById('prev').disabled = currentPage === 1;
         document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredNews.length;
@@ -302,6 +315,12 @@ document.addEventListener('DOMContentLoaded', function() {
         sel.innerHTML = '<option value="all">全ての会社</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
         applyResearchFilters();
     }
+
+    document.getElementById('itemsPerPage').addEventListener('change', () => {
+        ITEMS_PER_PAGE = parseInt(document.getElementById('itemsPerPage').value);
+        currentPage = 1;
+        renderNews();
+    });
 
     document.getElementById('search').addEventListener('input', applyNewsFilters);
     document.getElementById('sort').addEventListener('change', applyNewsFilters);
