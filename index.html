@@ -285,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const div = document.createElement('div');
             div.className = 'card';
             div.innerHTML = `
+                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
                 <div class="date">${parseDate(item.date)}</div>
                 <a href="${item.link}" target="_blank">${item.company}</a>
                 <p>${item.info}</p>
@@ -292,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
             container.appendChild(div);
         });
     }
+
 
     function applyResearchFilters() {
         const company = document.getElementById('companyFilter').value;
