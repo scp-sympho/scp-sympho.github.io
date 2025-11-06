@@ -72,12 +72,12 @@ input, select, button {
 .card {
     display: flex;
     flex-direction: column;
-    position: relative; /* New! バッジ位置用 */
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     padding: 15px;
     transition: transform 0.2s;
+    position: relative; /* New! バッジ用 */
 }
 
 .card:hover {
@@ -107,26 +107,6 @@ input, select, button {
     text-align: right;
 }
 
-/* New! バッジ */
-.new-badge {
-    position: absolute;
-    top: 10px;
-    right: -10px;
-    background: red;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-    padding: 3px 6px;
-    border-radius: 5px;
-    transform: rotate(15deg);
-    animation: bounce 1s infinite alternate;
-}
-
-@keyframes bounce {
-    0% { transform: translateY(0) rotate(15deg); }
-    100% { transform: translateY(-5px) rotate(15deg); }
-}
-
 .pagination {
     text-align: center;
     margin-top: 20px;
@@ -148,22 +128,28 @@ button:disabled {
     cursor: not-allowed;
 }
 
-/* ───── 訪問者カウンター ───── */
-#visitor-counter {
+/* New! バッジ */
+.new-badge {
     position: absolute;
     top: 10px;
-    right: 15px;
+    right: -10px;
+    background: red;
+    color: white;
     font-size: 12px;
-    color: #777;
-    opacity: 0.7;
-    z-index: 10;
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 5px;
+    transform: rotate(15deg);
+    animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+    0% { transform: translateY(0) rotate(15deg); }
+    100% { transform: translateY(-5px) rotate(15deg); }
 }
 </style>
 </head>
 <body>
-
-<!-- ▼ 訪問者カウンター（右上） -->
-<div id="visitor-counter">Viewer <span id="visit-count">...</span></div>
 
 <h1>ニュースサイトRSSビューア</h1>
 <p class="subtitle">信頼できる情報を、より早く、より正確に。</p>
@@ -239,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = '';
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         const pageItems = filteredNews.slice(start, start + ITEMS_PER_PAGE);
+
         pageItems.forEach(item => {
             const div = document.createElement('div');
             div.className = 'card';
@@ -251,8 +238,8 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             container.appendChild(div);
         });
-        document.getElementById('pageInfo').textContent = 
-            `${currentPage} / ${Math.ceil(filteredNews.length / ITEMS_PER_PAGE)}`;
+
+        document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredNews.length / ITEMS_PER_PAGE)}`;
         document.getElementById('prev').disabled = currentPage === 1;
         document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredNews.length;
     }
@@ -260,16 +247,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyNewsFilters() {
         const query = document.getElementById('search').value.toLowerCase();
         const selectedSource = document.getElementById('sourceFilter').value;
+
         filteredNews = allNews.filter(r => {
             const matchKeyword = r.title.toLowerCase().includes(query) || r.description.toLowerCase().includes(query);
             const matchSource = selectedSource === 'all' || r.source === selectedSource;
             return matchKeyword && matchSource;
         });
+
         const sort = document.getElementById('sort').value;
         filteredNews.sort((a,b) => {
             const da = new Date(a.date), db = new Date(b.date);
             return sort === 'newest' ? db - da : da - db;
         });
+
         currentPage = 1;
         renderNews();
     }
@@ -300,7 +290,6 @@ document.addEventListener('DOMContentLoaded', function() {
         allNews = await loadCSV('rss.csv');
         filteredNews = [...allNews];
         applyNewsFilters();
-
         const sources = [...new Set(allNews.map(r => r.source).filter(s => s))].sort();
         const sourceSel = document.getElementById('sourceFilter');
         sourceSel.innerHTML = '<option value="all">全ての出典</option>' + 
@@ -310,8 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filteredResearch = [...allResearch];
         const companies = [...new Set(allResearch.map(r => r.company))].sort();
         const sel = document.getElementById('companyFilter');
-        sel.innerHTML = '<option value="all">全ての会社</option>' + 
-            companies.map(c => `<option value="${c}">${c}</option>`).join('');
+        sel.innerHTML = '<option value="all">全ての会社</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
         applyResearchFilters();
     }
 
@@ -341,26 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshData();
 });
 </script>
-
-<!-- ▼ Viewer カウンター -->
-<script>
-(async () => {
-  // namespace と key は自由に変更可（他人とかぶらないものに）
-  const namespace = 'scp-sympho-github';
-  const key = 'page_view_count';
-  const url = `https://api.countapi.xyz/hit/${namespace}/${key}`;
-
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    document.getElementById('visit-count').textContent = data.value.toLocaleString();
-  } catch (e) {
-    document.getElementById('visit-count').textContent = '取得失敗';
-    console.error('CountAPI Error:', e);
-  }
-})();
-</script>
-
 
 </body>
 </html>
