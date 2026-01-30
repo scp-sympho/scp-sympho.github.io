@@ -174,19 +174,28 @@ button:disabled {
 <div id="news-section">
     <div class="controls">
         <input type="text" id="search" placeholder="キーワード検索...">
+
         <select id="sort">
             <option value="newest">新しい順</option>
             <option value="oldest">古い順</option>
         </select>
+
         <select id="sourceFilter">
             <option value="all">全ての出典</option>
         </select>
+
+        <!-- ★追加：日付範囲 -->
+        <input type="date" id="dateFrom">
+        <span>～</span>
+        <input type="date" id="dateTo">
+
         <select id="itemsPerPage">
             <option value="20">20件表示</option>
             <option value="50" selected>50件表示</option>
             <option value="100">100件表示</option>
         </select>
     </div>
+
     <div id="news" class="news-list"></div>
     <div class="pagination">
         <button id="prev">前へ</button>
@@ -261,21 +270,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const query = document.getElementById('search').value.toLowerCase();
         const selectedSource = document.getElementById('sourceFilter').value;
 
+        const fromInput = document.getElementById('dateFrom').value;
+        const toInput = document.getElementById('dateTo').value;
+
+        const fromDate = fromInput ? new Date(fromInput + 'T00:00:00') : null;
+        const toDate = toInput
+            ? new Date(toInput + 'T23:59:59')
+            : (fromDate ? new Date() : null);
+
         filteredNews = allNews.filter(r => {
-            const matchKeyword = r.title.toLowerCase().includes(query) || r.description.toLowerCase().includes(query);
-            const matchSource = selectedSource === 'all' || r.source === selectedSource;
-            return matchKeyword && matchSource;
+            // キーワード
+            const matchKeyword =
+                r.title.toLowerCase().includes(query) ||
+                r.description.toLowerCase().includes(query);
+
+            // 出典
+            const matchSource =
+                selectedSource === 'all' || r.source === selectedSource;
+
+            // 日付
+            let matchDate = true;
+            if (fromDate) {
+                const itemDate = new Date(r.date);
+                matchDate =
+                    !isNaN(itemDate) &&
+                    itemDate >= fromDate &&
+                    (!toDate || itemDate <= toDate);
+            }
+
+            return matchKeyword && matchSource && matchDate;
         });
 
         const sort = document.getElementById('sort').value;
-        filteredNews.sort((a,b) => {
-            const da = new Date(a.date), db = new Date(b.date);
+        filteredNews.sort((a, b) => {
+            const da = new Date(a.date);
+            const db = new Date(b.date);
             return sort === 'newest' ? db - da : da - db;
         });
 
         currentPage = 1;
         renderNews();
     }
+
 
     function renderResearch() {
         const container = document.getElementById('research');
@@ -346,6 +382,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('refresh').addEventListener('click', refreshData);
+    document.getElementById('dateFrom').addEventListener('change', applyNewsFilters);
+    document.getElementById('dateTo').addEventListener('change', applyNewsFilters);
+
 
     refreshData();
 });
