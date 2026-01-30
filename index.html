@@ -274,9 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const toInput = document.getElementById('dateTo').value;
 
         const fromDate = fromInput ? new Date(fromInput + 'T00:00:00') : null;
-        const toDate = toInput
-            ? new Date(toInput + 'T23:59:59')
-            : (fromDate ? new Date() : null);
+        const toDate = toInput ? new Date(toInput + 'T23:59:59') : null;
 
         filteredNews = allNews.filter(r => {
             // キーワード
@@ -290,12 +288,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 日付
             let matchDate = true;
-            if (fromDate) {
-                const itemDate = new Date(r.date);
-                matchDate =
-                    !isNaN(itemDate) &&
-                    itemDate >= fromDate &&
-                    (!toDate || itemDate <= toDate);
+            const itemDate = new Date(r.date);
+
+            if (!isNaN(itemDate)) {
+                if (fromDate && toDate) {
+                    matchDate = itemDate >= fromDate && itemDate <= toDate;
+                } else if (fromDate) {
+                    matchDate = itemDate >= fromDate;
+                } else if (toDate) {
+                    matchDate = itemDate <= toDate;
+                }
             }
 
             return matchKeyword && matchSource && matchDate;
@@ -311,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
         currentPage = 1;
         renderNews();
     }
+
 
 
     function renderResearch() {
