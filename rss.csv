@@ -1,4 +1,5 @@
 date,title,link,description,source
+2026-02-06 08:38:00,OpenAI、エージェントコーディングモデル「GPT-5.3-Codex」発表　Anthropicの新Opus発表直後に,https://www.itmedia.co.jp/aiplus/articles/2602/06/news063.html,OpenAIは、自律型コーディングモデル「GPT-5.3-Codex」をリリースしたと発表した。Anthropicの新モデル「Claude Opus 4.6」発表直後のことだ。PC操作ベンチマークで前モデルの約1.7倍となるスコアを記録し、設計からデバッグ、資料作成まで自律遂行する。,ITmedia
 2026-02-06 07:30:00,作業効率爆上がりでも不幸になる？　開発者を襲う「AIのパラドックス」とは,https://www.itmedia.co.jp/enterprise/articles/2602/05/news031.html,GitLabは、DevSecOpsにおけるAIの導入でどのような変化が起きるのかを調査した。国内のソフトウェア開発関係者の多くは、AIの導入によってコーディング作業効率を改善したが、一方で“ある課題”によってその利点を生かしきれていないという。,ITmedia
 2026-02-06 07:11:00,Anthropic、「エージェントチーム」搭載の「Claude Opus 4.6」リリース,https://www.itmedia.co.jp/aiplus/articles/2602/06/news061.html,Anthropicは、新フラグシップモデル「Claude Opus 4.6」を発表した。Opusクラス初の100万トークン対応や、複数AIが並列作業する「Agent Team」機能を搭載。PowerPoint連携による資料自動作成も可能だ。前モデルから推論、コーディング能力が大幅に向上し、金融やソフトウェア開発など専門業務の自律化を加速させるとしている。,ITmedia
 2026-02-06 05:00:00,サンディスクとキオクシア、332層の2テラNAND　サムスンはHBM4発表　,https://xtech.nikkei.com/atcl/nxt/column/18/03421/012500003/,　半導体回路の国際会議「ISSCC 2026」で、プロセッサーと共に企業の採択論文が多いのがメモリー関連である。米Sandisk（サンディスク）はキオクシアと共著で、過去最高ビット密度の2テラビットの3次元NAND型フラッシュメモリーを報告する。,日経XTECH
