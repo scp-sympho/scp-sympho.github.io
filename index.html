@@ -27,6 +27,17 @@ h1 {
     color: #888;
 }
 
+.viewer-info {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-size: 12px;
+    color: #888;
+    text-align: right;
+}
+
+
+
 .subtitle {
     margin-top: -0.3em;
     font-size: 0.95em;
@@ -161,13 +172,19 @@ button:disabled {
 
 <h1>
     ニュースサイトRSSビューア
-    <span class="viewer-counter">Ver.0.1</span>
+    <!-- <span class="viewer-counter">Ver.0.2</span> -->
+    <div class="viewer-info">
+        <div>Ver.0.2</div>
+        <div>Last Update : 2026-02-12</div>
+    </div>
+
 </h1>
 <p class="subtitle">信頼できる情報を、より早く、より正確に。</p>
 
 <div class="tabs">
     <button id="tab-news" class="tab active">ニュース</button>
     <button id="tab-research" class="tab">会社情報</button>
+    <button id="tab-expert" class="tab">専門情報</button>
     <button id="refresh" class="action">🔄 更新</button>
 </div>
 
@@ -211,23 +228,35 @@ button:disabled {
     <div id="research" class="research-list"></div>
 </div>
 
+<div id="expert-section" style="display:none;">
+    <div class="controls">
+        <select id="ExpertFilter"><option value="all">全ての出典</option></select>
+    </div>
+    <div id="expert" class="news-list"></div>
+</div>
+
+
+
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let ITEMS_PER_PAGE = parseInt(document.getElementById('itemsPerPage').value);
     let allNews = [], filteredNews = [], currentPage = 1;
     let allResearch = [], filteredResearch = [];
+    let allExpert = [], filteredExpert = [];
+
 
     async function loadCSV(file) {
         const res = await fetch(file);
         const text = await res.text();
-        const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
-        const headers = rows[0].split(',');
-        return rows.slice(1).map(r => {
-            const cols = r.split(',');
-            let obj = {};
-            headers.forEach((h, i) => obj[h.trim()] = (cols[i] || '').trim());
-            return obj;
-        }).filter(obj => Object.keys(obj).length > 0);
+
+        const result = Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true
+        });
+
+        return result.data;
     }
 
     function parseDate(dateStr) {
@@ -340,6 +369,35 @@ document.addEventListener('DOMContentLoaded', function() {
         renderResearch();
     }
 
+    function renderExpert() {
+        const container = document.getElementById('expert');
+        container.innerHTML = '';
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        const pageItems = filteredExpert.slice(start, start + ITEMS_PER_PAGE);
+        pageItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
+                <div class="date">${parseDate(item.date)}</div>
+                <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
+                <p>${item.description || ''}</p>
+                <div class="source">出典：${item.source || '不明'}</div>
+            `;
+            container.appendChild(div);
+        });
+        document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredExpert.length / ITEMS_PER_PAGE)}`;
+        document.getElementById('prev').disabled = currentPage === 1;
+        document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredExpert.length;
+    }
+
+    function applyExpertFilters() {
+        const selectedSource = document.getElementById('ExpertFilter').value;
+        filteredExpert = allExpert.filter(r => selectedSource === 'all' || r.source === selectedSource);
+        renderExpert();
+    }
+
+
     async function refreshData() {
         allNews = await loadCSV('rss.csv');
         filteredNews = [...allNews];
@@ -355,13 +413,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const sel = document.getElementById('companyFilter');
         sel.innerHTML = '<option value="all">全ての会社</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
         applyResearchFilters();
+
+        allExpert = await loadCSV('expert.csv');
+        filteredExpert = [...allExpert]
+        applyExpertFilters();
+        const expertSources = [...new Set(allExpert.map(r => r.source).filter(s => s))].sort();
+        const expertSel = document.getElementById('ExpertFilter');
+        expertSel.innerHTML = '<option value="all">全ての出典</option>' + expertSources.map(s => `<option value="${s}">${s}</option>`).join('');
     }
 
     document.getElementById('itemsPerPage').addEventListener('change', () => {
         ITEMS_PER_PAGE = parseInt(document.getElementById('itemsPerPage').value);
         currentPage = 1;
-        renderNews();
+
+        if (document.getElementById('news-section').style.display !== 'none') {
+            renderNews();
+        }
+        else if (document.getElementById('research-section').style.display !== 'none') {
+            renderResearch();
+        }
+        else if (document.getElementById('expert-section').style.display !== 'none') {
+            renderExpert();
+        }
     });
+
 
     document.getElementById('search').addEventListener('input', applyNewsFilters);
     document.getElementById('sort').addEventListener('change', applyNewsFilters);
@@ -369,20 +444,35 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('next').addEventListener('click', ()=>{if(currentPage*ITEMS_PER_PAGE<filteredNews.length){currentPage++;renderNews();}});
     document.getElementById('sourceFilter').addEventListener('change', applyNewsFilters);
     document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
+    document.getElementById('ExpertFilter').addEventListener('change', applyExpertFilters);
 
     document.getElementById('tab-news').addEventListener('click', ()=>{
         document.getElementById('tab-news').classList.add('active');
         document.getElementById('tab-research').classList.remove('active');
+        document.getElementById('tab-expert').classList.remove('active');
         document.getElementById('news-section').style.display='block';
         document.getElementById('research-section').style.display='none';
+        document.getElementById('expert-section').style.display='none';
     });
 
     document.getElementById('tab-research').addEventListener('click', ()=>{
         document.getElementById('tab-research').classList.add('active');
         document.getElementById('tab-news').classList.remove('active');
+        document.getElementById('tab-expert').classList.remove('active');
         document.getElementById('news-section').style.display='none';
         document.getElementById('research-section').style.display='block';
+        document.getElementById('expert-section').style.display='none';
     });
+
+    document.getElementById('tab-expert').addEventListener('click', ()=>{
+        document.getElementById('tab-expert').classList.add('active');
+        document.getElementById('tab-news').classList.remove('active');
+        document.getElementById('tab-research').classList.remove('active');
+        document.getElementById('news-section').style.display='none';
+        document.getElementById('research-section').style.display='none';
+        document.getElementById('expert-section').style.display='block';
+    });
+
 
     document.getElementById('refresh').addEventListener('click', refreshData);
     document.getElementById('dateFrom').addEventListener('change', applyNewsFilters);
