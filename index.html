@@ -36,8 +36,6 @@ h1 {
     text-align: right;
 }
 
-
-
 .subtitle {
     margin-top: -0.3em;
     font-size: 0.95em;
@@ -88,6 +86,13 @@ input, select, button {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 15px;
 }
+
+.info-list{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    gap: 15px;
+}
+
 
 .card {
     display: flex;
@@ -185,6 +190,7 @@ button:disabled {
     <button id="tab-news" class="tab active">ニュース</button>
     <button id="tab-research" class="tab">会社情報</button>
     <button id="tab-expert" class="tab">専門情報</button>
+    <button id="tab-info" class="tab">情報サイト</button>
     <button id="refresh" class="action">🔄 更新</button>
 </div>
 
@@ -235,6 +241,13 @@ button:disabled {
     <div id="expert" class="news-list"></div>
 </div>
 
+<div id="info-section" style="display:none;">
+    <div class="controls">
+        <select id="infoFilter"><option value="all">全ての出典</option></select>
+    </div>
+    <div id="info" class="info-list"></div>
+</div>
+
 
 
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
@@ -245,6 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let allNews = [], filteredNews = [], currentPage = 1;
     let allResearch = [], filteredResearch = [];
     let allExpert = [], filteredExpert = [];
+    let allinfo = [], filteredinfo = [];
 
 
     async function loadCSV(file) {
@@ -397,6 +411,34 @@ document.addEventListener('DOMContentLoaded', function() {
         renderExpert();
     }
 
+    function renderinfo() {
+        const container = document.getElementById('info');
+        container.innerHTML = '';
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        const pageItems = filteredinfo.slice(start, start + ITEMS_PER_PAGE);
+        pageItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
+                <div class="date">${parseDate(item.date)}</div>
+                <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
+                <p>${item.description || ''}</p>
+                <div class="source">出典：${item.source || '不明'}</div>
+            `;
+            container.appendChild(div);
+        });
+        document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredinfo.length / ITEMS_PER_PAGE)}`;
+        document.getElementById('prev').disabled = currentPage === 1;
+        document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredinfo.length;
+    }
+
+    function applyinfoFilters() {
+        const selectedSource = document.getElementById('infoFilter').value;
+        filteredinfo = allinfo.filter(r => selectedSource === 'all' || r.source === selectedSource);
+        renderinfo();
+    }
+
 
     async function refreshData() {
         allNews = await loadCSV('rss.csv');
@@ -420,6 +462,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const expertSources = [...new Set(allExpert.map(r => r.source).filter(s => s))].sort();
         const expertSel = document.getElementById('ExpertFilter');
         expertSel.innerHTML = '<option value="all">全ての出典</option>' + expertSources.map(s => `<option value="${s}">${s}</option>`).join('');
+
+        allinfo = await loadCSV('info.csv');
+        filteredinfo = [...allinfo]
+        applyinfoFilters();
+        const infoSources = [...new Set(allinfo.map(r => r.source).filter(s => s))].sort();
+        const infoSel = document.getElementById('infoFilter');
+        infoSel.innerHTML = '<option value="all">全ての出典</option>' + infoSources.map(s => `<option value="${s}">${s}</option>`).join('');
     }
 
     document.getElementById('itemsPerPage').addEventListener('change', () => {
@@ -434,6 +483,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         else if (document.getElementById('expert-section').style.display !== 'none') {
             renderExpert();
+        }else if (document.getElementById('info-section').style.display !== 'none') {
+            renderinfo();
         }
     });
 
@@ -445,32 +496,50 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('sourceFilter').addEventListener('change', applyNewsFilters);
     document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
     document.getElementById('ExpertFilter').addEventListener('change', applyExpertFilters);
+    document.getElementById('infoFilter').addEventListener('change', applyinfoFilters);
 
     document.getElementById('tab-news').addEventListener('click', ()=>{
         document.getElementById('tab-news').classList.add('active');
         document.getElementById('tab-research').classList.remove('active');
         document.getElementById('tab-expert').classList.remove('active');
+        document.getElementById('tab-info').classList.remove('active');
         document.getElementById('news-section').style.display='block';
         document.getElementById('research-section').style.display='none';
         document.getElementById('expert-section').style.display='none';
+        document.getElementById('info-section').style.display='none';
     });
 
     document.getElementById('tab-research').addEventListener('click', ()=>{
         document.getElementById('tab-research').classList.add('active');
         document.getElementById('tab-news').classList.remove('active');
         document.getElementById('tab-expert').classList.remove('active');
+        document.getElementById('tab-info').classList.remove('active');
         document.getElementById('news-section').style.display='none';
         document.getElementById('research-section').style.display='block';
         document.getElementById('expert-section').style.display='none';
+        document.getElementById('info-section').style.display='none';
     });
 
     document.getElementById('tab-expert').addEventListener('click', ()=>{
         document.getElementById('tab-expert').classList.add('active');
         document.getElementById('tab-news').classList.remove('active');
         document.getElementById('tab-research').classList.remove('active');
+        document.getElementById('tab-info').classList.remove('active');
         document.getElementById('news-section').style.display='none';
         document.getElementById('research-section').style.display='none';
         document.getElementById('expert-section').style.display='block';
+        document.getElementById('info-section').style.display='none';
+    });
+
+    document.getElementById('tab-info').addEventListener('click', ()=>{
+        document.getElementById('tab-info').classList.add('active');
+        document.getElementById('tab-news').classList.remove('active');
+        document.getElementById('tab-research').classList.remove('active');
+        document.getElementById('tab-expert').classList.remove('active');
+        document.getElementById('news-section').style.display='none';
+        document.getElementById('research-section').style.display='none';
+        document.getElementById('expert-section').style.display='none';
+        document.getElementById('info-section').style.display='block';
     });
 
 
