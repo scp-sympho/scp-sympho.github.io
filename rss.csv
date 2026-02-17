@@ -1,4 +1,5 @@
 date,title,link,description,source
+2026-02-17 15:48:00,GPT、獣医師国家試験に合格　「o3」は正答率92.9％,https://www.itmedia.co.jp/aiplus/articles/2602/17/news109.html,問題は日本語原文のまま、プロンプトの最適化を行わなくても正答率は高いという結果。,ITmedia
 2026-02-17 13:18:00,生成AIがGoogle製サービスの公式ドキュメントを参照できる「Developer Knowledge API & MCP Server」発表,https://www.itmedia.co.jp/news/articles/2602/17/news090.html,米Googleは、Google Cloud、Android、FirebaseなどGoogleテクノロジーの公式ドキュメントの情報を取得し、生成AIから参照できるDeveloper Knowledge APIおよびそれに対応したMCP（Model Context Protocol）サーバのパブリックプレビューを発表しました。,ITmedia
 2026-02-17 13:02:00,富士通、ソフトウェア開発の全工程をAIで自動化　“生産性100倍”に　独自LLM「Takane」活用,https://www.itmedia.co.jp/aiplus/articles/2602/17/news086.html,富士通は、ソフトウェア開発の全工程をAIで自動化する基盤「AI-Driven Software Development Platform」を開発したと発表した。実証実験の一部の案件では、生産性が100倍に向上したという。,ITmedia
 2026-02-17 12:30:00,【調査レポート】設計・解析業務におけるAI活用の現実と課題,https://monoist.itmedia.co.jp/mn/articles/2602/17/news020.html,MONOist／TechFactory編集部は「『設計・解析業務におけるAI活用』に関する実態調査 2025」を実施した。調査期間は2025年10月7日～11月3日で、有効回答数は406件だった。調査結果の詳細をレポート形式でお届けする。,ITmedia
