@@ -180,7 +180,7 @@ button:disabled {
     <!-- <span class="viewer-counter">Ver.0.2</span> -->
     <div class="viewer-info">
         <div>Ver.0.3</div>
-        <div>Last Update : 2026-02-13</div>
+        <div>Last Update : 2026-02-26</div>
     </div>
 
 </h1>
@@ -194,362 +194,282 @@ button:disabled {
     <button id="refresh" class="action">🔄 更新</button>
 </div>
 
+<div class="controls" id="global-controls">
+
+    <input type="text" id="search" placeholder="キーワード検索...">
+
+    <select id="sort">
+        <option value="newest">新しい順</option>
+        <option value="oldest">古い順</option>
+    </select>
+
+    <select id="sourceFilter">
+        <option value="all">全ての出典</option>
+    </select>
+
+    <select id="companyFilter" style="display:none;">
+        <option value="all">全ての会社</option>
+    </select>
+
+    <input type="date" id="dateFrom">
+    <span>～</span>
+    <input type="date" id="dateTo">
+
+    <select id="itemsPerPage">
+        <option value="20">20件表示</option>
+        <option value="50" selected>50件表示</option>
+        <option value="100">100件表示</option>
+    </select>
+
+</div>
+
 <div id="news-section">
-    <div class="controls">
-        <input type="text" id="search" placeholder="キーワード検索...">
-
-        <select id="sort">
-            <option value="newest">新しい順</option>
-            <option value="oldest">古い順</option>
-        </select>
-
-        <select id="sourceFilter">
-            <option value="all">全ての出典</option>
-        </select>
-
-        <!-- ★追加：日付範囲 -->
-        <input type="date" id="dateFrom">
-        <span>～</span>
-        <input type="date" id="dateTo">
-
-        <select id="itemsPerPage">
-            <option value="20">20件表示</option>
-            <option value="50" selected>50件表示</option>
-            <option value="100">100件表示</option>
-        </select>
-    </div>
-
     <div id="news" class="news-list"></div>
-    <div class="pagination">
-        <button id="prev">前へ</button>
-        <span id="pageInfo"></span>
-        <button id="next">次へ</button>
-    </div>
 </div>
 
 <div id="research-section" style="display:none;">
-    <div class="controls">
-        <select id="companyFilter"><option value="all">全ての会社</option></select>
-    </div>
     <div id="research" class="research-list"></div>
 </div>
 
 <div id="expert-section" style="display:none;">
-    <div class="controls">
-        <select id="ExpertFilter"><option value="all">全ての出典</option></select>
-    </div>
     <div id="expert" class="news-list"></div>
 </div>
 
 <div id="info-section" style="display:none;">
-    <div class="controls">
-        <select id="infoFilter"><option value="all">全ての出典</option></select>
-    </div>
     <div id="info" class="info-list"></div>
 </div>
 
+<div class="pagination">
+    <button id="prev">前へ</button>
+    <span id="pageInfo"></span>
+    <button id="next">次へ</button>
+</div>
 
 
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function(){
+
     let ITEMS_PER_PAGE = parseInt(document.getElementById('itemsPerPage').value);
-    let allNews = [], filteredNews = [], currentPage = 1;
-    let allResearch = [], filteredResearch = [];
-    let allExpert = [], filteredExpert = [];
-    let allinfo = [], filteredinfo = [];
+    let currentPage = 1;
+    let currentTab = "news";
 
+    const state = {
+        news: {all:[], filtered:[]},
+        research: {all:[], filtered:[]},
+        expert: {all:[], filtered:[]},
+        info: {all:[], filtered:[]}
+    };
 
-    async function loadCSV(file) {
+    async function loadCSV(file){
         const res = await fetch(file);
         const text = await res.text();
-
-        const result = Papa.parse(text, {
-            header: true,
-            skipEmptyLines: true
-        });
-
-        return result.data;
+        return Papa.parse(text,{header:true,skipEmptyLines:true}).data;
     }
 
-    function parseDate(dateStr) {
-        if(!dateStr) return '';
-        const d = new Date(dateStr);
-        return isNaN(d) ? '' : dateStr;
+    function parseDate(d){
+        if(!d) return '';
+        const dt=new Date(d);
+        return isNaN(dt)?'':d;
     }
 
-    function isToday(dateStr) {
-        const d = new Date(dateStr);
-        const now = new Date();
-        return d.getFullYear() === now.getFullYear() &&
-               d.getMonth() === now.getMonth() &&
-               d.getDate() === now.getDate();
+    function isToday(d){
+        const dt=new Date(d);
+        const n=new Date();
+        return dt.getFullYear()==n.getFullYear() &&
+            dt.getMonth()==n.getMonth() &&
+            dt.getDate()==n.getDate();
     }
 
-    function renderNews() {
-        const container = document.getElementById('news');
-        container.innerHTML = '';
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        const pageItems = filteredNews.slice(start, start + ITEMS_PER_PAGE);
-        pageItems.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.innerHTML = `
-                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
-                <div class="date">${parseDate(item.date)}</div>
-                <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
-                <p>${item.description || ''}</p>
-                <div class="source">出典：${item.source || '不明'}</div>
-            `;
-            container.appendChild(div);
-        });
-        document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredNews.length / ITEMS_PER_PAGE)}`;
-        document.getElementById('prev').disabled = currentPage === 1;
-        document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredNews.length;
+    function getActiveData(){
+        return state[currentTab];
     }
 
-    function applyNewsFilters() {
+    function applyFilters(){
+
         const query = document.getElementById('search').value.toLowerCase();
-        const selectedSource = document.getElementById('sourceFilter').value;
 
-        const fromInput = document.getElementById('dateFrom').value;
-        const toInput = document.getElementById('dateTo').value;
+        const sourceElement =
+            currentTab === "research"
+                ? document.getElementById("companyFilter")
+                : document.getElementById("sourceFilter");
 
-        const fromDate = fromInput ? new Date(fromInput + 'T00:00:00') : null;
-        const toDate = toInput ? new Date(toInput + 'T23:59:59') : null;
+        if(!sourceElement) return; // ← 安全装置
 
-        filteredNews = allNews.filter(r => {
-            // キーワード
-            const matchKeyword =
-                r.title.toLowerCase().includes(query) ||
-                r.description.toLowerCase().includes(query);
+        const sourceSel = sourceElement.value;
 
-            // 出典
+        const fromInput=document.getElementById('dateFrom').value;
+        const toInput=document.getElementById('dateTo').value;
+        const fromDate=fromInput?new Date(fromInput+"T00:00:00"):null;
+        const toDate=toInput?new Date(toInput+"T23:59:59"):null;
+        const sort=document.getElementById('sort').value;
+
+        const tab=state[currentTab];
+
+        tab.filtered = tab.all.filter(r=>{
+
+            const title=(r.title||r.company||"").toLowerCase();
+            const desc=(r.description||r.info||"").toLowerCase();
+
+            const matchKeyword=title.includes(query)||desc.includes(query);
+
             const matchSource =
-                selectedSource === 'all' || r.source === selectedSource;
+                sourceSel==="all" ||
+                (currentTab==="research"
+                    ? r.company===sourceSel
+                    : r.source===sourceSel);
 
-            // 日付
-            let matchDate = true;
-            const itemDate = new Date(r.date);
+            let matchDate=true;
+            const d=new Date(r.date);
 
-            if (!isNaN(itemDate)) {
-                if (fromDate && toDate) {
-                    matchDate = itemDate >= fromDate && itemDate <= toDate;
-                } else if (fromDate) {
-                    matchDate = itemDate >= fromDate;
-                } else if (toDate) {
-                    matchDate = itemDate <= toDate;
-                }
+            if(!isNaN(d)){
+                if(fromDate && toDate) matchDate=d>=fromDate && d<=toDate;
+                else if(fromDate) matchDate=d>=fromDate;
+                else if(toDate) matchDate=d<=toDate;
             }
 
             return matchKeyword && matchSource && matchDate;
         });
 
-        const sort = document.getElementById('sort').value;
-        filteredNews.sort((a, b) => {
-            const da = new Date(a.date);
-            const db = new Date(b.date);
-            return sort === 'newest' ? db - da : da - db;
+        tab.filtered.sort((a,b)=>{
+            return sort==="newest"
+                ? new Date(b.date)-new Date(a.date)
+                : new Date(a.date)-new Date(b.date);
         });
 
-        currentPage = 1;
-        renderNews();
-    }
+        currentPage=1;
+        render();
+}
 
 
+    function render(){
 
-    function renderResearch() {
-        const container = document.getElementById('research');
-        container.innerHTML = '';
-        filteredResearch.sort((a,b) => new Date(b.date) - new Date(a.date));
-        filteredResearch.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.innerHTML = `
-                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
+        const tab=getActiveData();
+        const container=document.getElementById(currentTab);
+        container.innerHTML="";
+
+        const start=(currentPage-1)*ITEMS_PER_PAGE;
+        const items=tab.filtered.slice(start,start+ITEMS_PER_PAGE);
+
+        items.forEach(item=>{
+            const div=document.createElement('div');
+            div.className='card';
+
+            div.innerHTML=`
+                ${isToday(item.date)?'<div class="new-badge">New!</div>':''}
                 <div class="date">${parseDate(item.date)}</div>
-                <a href="${item.link}" target="_blank">${item.company}</a>
-                <p>${item.info}</p>
+                <a href="${item.link}" target="_blank">
+                    ${item.title||item.company||"(無題)"}
+                </a>
+                <p>${item.description||item.info||""}</p>
+                <div class="source">出典：${item.source||item.company||"不明"}</div>
             `;
+
             container.appendChild(div);
         });
+
+        const maxPage=Math.ceil(tab.filtered.length/ITEMS_PER_PAGE)||1;
+        document.getElementById('pageInfo').textContent=
+            `${currentPage} / ${maxPage}`;
+
+        document.getElementById('prev').disabled=currentPage===1;
+        document.getElementById('next').disabled=currentPage>=maxPage;
     }
 
+    async function refreshData(){
 
-    function applyResearchFilters() {
-        const company = document.getElementById('companyFilter').value;
-        filteredResearch = allResearch.filter(r => company === 'all' || r.company === company);
-        renderResearch();
-    }
+        state.news.all=await loadCSV('rss.csv');
+        state.research.all=await loadCSV('research.csv');
+        state.expert.all=await loadCSV('expert.csv');
+        state.info.all=await loadCSV('info.csv');
 
-    function renderExpert() {
-        const container = document.getElementById('expert');
-        container.innerHTML = '';
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        const pageItems = filteredExpert.slice(start, start + ITEMS_PER_PAGE);
-        pageItems.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.innerHTML = `
-                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
-                <div class="date">${parseDate(item.date)}</div>
-                <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
-                <p>${item.description || ''}</p>
-                <div class="source">出典：${item.source || '不明'}</div>
-            `;
-            container.appendChild(div);
+        Object.keys(state).forEach(k=>{
+            state[k].filtered=[...state[k].all];
         });
-        document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredExpert.length / ITEMS_PER_PAGE)}`;
-        document.getElementById('prev').disabled = currentPage === 1;
-        document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredExpert.length;
-    }
 
-    function applyExpertFilters() {
-        const selectedSource = document.getElementById('ExpertFilter').value;
-        filteredExpert = allExpert.filter(r => selectedSource === 'all' || r.source === selectedSource);
-        renderExpert();
-    }
-
-    function renderinfo() {
-        const container = document.getElementById('info');
-        container.innerHTML = '';
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        const pageItems = filteredinfo.slice(start, start + ITEMS_PER_PAGE);
-        pageItems.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.innerHTML = `
-                ${isToday(item.date) ? '<div class="new-badge">New!</div>' : ''}
-                <div class="date">${parseDate(item.date)}</div>
-                <a href="${item.link}" target="_blank">${item.title || '(無題)'}</a>
-                <p>${item.description || ''}</p>
-                <div class="source">出典：${item.source || '不明'}</div>
-            `;
-            container.appendChild(div);
-        });
-        document.getElementById('pageInfo').textContent = `${currentPage} / ${Math.ceil(filteredinfo.length / ITEMS_PER_PAGE)}`;
-        document.getElementById('prev').disabled = currentPage === 1;
-        document.getElementById('next').disabled = start + ITEMS_PER_PAGE >= filteredinfo.length;
-    }
-
-    function applyinfoFilters() {
-        const selectedSource = document.getElementById('infoFilter').value;
-        filteredinfo = allinfo.filter(r => selectedSource === 'all' || r.source === selectedSource);
-        renderinfo();
+        updateFilterOptions();   // ← 変更
+        applyFilters();
     }
 
 
-    async function refreshData() {
-        allNews = await loadCSV('rss.csv');
-        filteredNews = [...allNews];
-        applyNewsFilters();
-        const sources = [...new Set(allNews.map(r => r.source).filter(s => s))].sort();
-        const sourceSel = document.getElementById('sourceFilter');
-        sourceSel.innerHTML = '<option value="all">全ての出典</option>' + 
-            sources.map(s => `<option value="${s}">${s}</option>`).join('');
+    function updateFilterOptions(){
 
-        allResearch = await loadCSV('research.csv');
-        filteredResearch = [...allResearch];
-        const companies = [...new Set(allResearch.map(r => r.company))].sort();
-        const sel = document.getElementById('companyFilter');
-        sel.innerHTML = '<option value="all">全ての会社</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
-        applyResearchFilters();
+        const sourceEl = document.getElementById("sourceFilter");
+        const companyEl = document.getElementById("companyFilter");
 
-        allExpert = await loadCSV('expert.csv');
-        filteredExpert = [...allExpert]
-        applyExpertFilters();
-        const expertSources = [...new Set(allExpert.map(r => r.source).filter(s => s))].sort();
-        const expertSel = document.getElementById('ExpertFilter');
-        expertSel.innerHTML = '<option value="all">全ての出典</option>' + expertSources.map(s => `<option value="${s}">${s}</option>`).join('');
+        if(currentTab === "research"){
 
-        allinfo = await loadCSV('info.csv');
-        filteredinfo = [...allinfo]
-        applyinfoFilters();
-        const infoSources = [...new Set(allinfo.map(r => r.source).filter(s => s))].sort();
-        const infoSel = document.getElementById('infoFilter');
-        infoSel.innerHTML = '<option value="all">全ての出典</option>' + infoSources.map(s => `<option value="${s}">${s}</option>`).join('');
+            companyEl.style.display="inline-block";
+            sourceEl.style.display="none";
+
+            const vals=[...new Set(state.research.all.map(r=>r.company).filter(Boolean))].sort();
+            companyEl.innerHTML =
+                '<option value="all">全ての会社</option>'+
+                vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+
+        }else{
+
+            companyEl.style.display="none";
+            sourceEl.style.display="inline-block";
+
+            const vals=[...new Set(state[currentTab].all.map(r=>r.source).filter(Boolean))].sort();
+            sourceEl.innerHTML =
+                '<option value="all">全ての出典</option>'+
+                vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+        }
     }
 
-    document.getElementById('itemsPerPage').addEventListener('change', () => {
-        ITEMS_PER_PAGE = parseInt(document.getElementById('itemsPerPage').value);
+
+
+    function switchTab(tab){
+
+        currentTab = tab;
         currentPage = 1;
 
-        if (document.getElementById('news-section').style.display !== 'none') {
-            renderNews();
-        }
-        else if (document.getElementById('research-section').style.display !== 'none') {
-            renderResearch();
-        }
-        else if (document.getElementById('expert-section').style.display !== 'none') {
-            renderExpert();
-        }else if (document.getElementById('info-section').style.display !== 'none') {
-            renderinfo();
-        }
+        ["news","research","expert","info"].forEach(t=>{
+            document.getElementById(t+"-section").style.display =
+                t===tab ? "block":"none";
+            document.getElementById("tab-"+t)
+                .classList.toggle("active",t===tab);
+        });
+
+        updateFilterOptions();   // ← ★追加
+        applyFilters();
+    }
+
+
+
+    /* --- イベント --- */
+
+    document.getElementById('search').addEventListener('input',applyFilters);
+    document.getElementById('sort').addEventListener('change',applyFilters);
+    document.getElementById('dateFrom').addEventListener('change',applyFilters);
+    document.getElementById('dateTo').addEventListener('change',applyFilters);
+    document.getElementById('sourceFilter').addEventListener('change',applyFilters);
+    document.getElementById('companyFilter').addEventListener('change',applyFilters);
+    document.getElementById('itemsPerPage').addEventListener('change',()=>{
+        ITEMS_PER_PAGE=parseInt(itemsPerPage.value);
+        currentPage=1;
+        render();
     });
 
+    document.getElementById('prev').onclick=()=>{
+        if(currentPage>1){currentPage--;render();}
+    };
+    document.getElementById('next').onclick=()=>{
+        currentPage++;render();
+    };
 
-    document.getElementById('search').addEventListener('input', applyNewsFilters);
-    document.getElementById('sort').addEventListener('change', applyNewsFilters);
-    document.getElementById('prev').addEventListener('click', ()=>{if(currentPage>1){currentPage--;renderNews();}});
-    document.getElementById('next').addEventListener('click', ()=>{if(currentPage*ITEMS_PER_PAGE<filteredNews.length){currentPage++;renderNews();}});
-    document.getElementById('sourceFilter').addEventListener('change', applyNewsFilters);
-    document.getElementById('companyFilter').addEventListener('change', applyResearchFilters);
-    document.getElementById('ExpertFilter').addEventListener('change', applyExpertFilters);
-    document.getElementById('infoFilter').addEventListener('change', applyinfoFilters);
+    document.getElementById('tab-news').onclick=()=>switchTab("news");
+    document.getElementById('tab-research').onclick=()=>switchTab("research");
+    document.getElementById('tab-expert').onclick=()=>switchTab("expert");
+    document.getElementById('tab-info').onclick=()=>switchTab("info");
 
-    document.getElementById('tab-news').addEventListener('click', ()=>{
-        document.getElementById('tab-news').classList.add('active');
-        document.getElementById('tab-research').classList.remove('active');
-        document.getElementById('tab-expert').classList.remove('active');
-        document.getElementById('tab-info').classList.remove('active');
-        document.getElementById('news-section').style.display='block';
-        document.getElementById('research-section').style.display='none';
-        document.getElementById('expert-section').style.display='none';
-        document.getElementById('info-section').style.display='none';
-    });
-
-    document.getElementById('tab-research').addEventListener('click', ()=>{
-        document.getElementById('tab-research').classList.add('active');
-        document.getElementById('tab-news').classList.remove('active');
-        document.getElementById('tab-expert').classList.remove('active');
-        document.getElementById('tab-info').classList.remove('active');
-        document.getElementById('news-section').style.display='none';
-        document.getElementById('research-section').style.display='block';
-        document.getElementById('expert-section').style.display='none';
-        document.getElementById('info-section').style.display='none';
-    });
-
-    document.getElementById('tab-expert').addEventListener('click', ()=>{
-        document.getElementById('tab-expert').classList.add('active');
-        document.getElementById('tab-news').classList.remove('active');
-        document.getElementById('tab-research').classList.remove('active');
-        document.getElementById('tab-info').classList.remove('active');
-        document.getElementById('news-section').style.display='none';
-        document.getElementById('research-section').style.display='none';
-        document.getElementById('expert-section').style.display='block';
-        document.getElementById('info-section').style.display='none';
-    });
-
-    document.getElementById('tab-info').addEventListener('click', ()=>{
-        document.getElementById('tab-info').classList.add('active');
-        document.getElementById('tab-news').classList.remove('active');
-        document.getElementById('tab-research').classList.remove('active');
-        document.getElementById('tab-expert').classList.remove('active');
-        document.getElementById('news-section').style.display='none';
-        document.getElementById('research-section').style.display='none';
-        document.getElementById('expert-section').style.display='none';
-        document.getElementById('info-section').style.display='block';
-    });
-
-
-    document.getElementById('refresh').addEventListener('click', refreshData);
-    document.getElementById('dateFrom').addEventListener('change', applyNewsFilters);
-    document.getElementById('dateTo').addEventListener('change', applyNewsFilters);
-
+    document.getElementById('refresh').onclick=refreshData;
 
     refreshData();
-});
+    });
 </script>
 
 </body>
