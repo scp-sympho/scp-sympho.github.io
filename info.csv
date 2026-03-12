@@ -1,4 +1,5 @@
 date,title,link,description,source
+2026-03-12 18:43:26,AI間違いシリーズ：CopilotにTailwindの ! の位置を指摘されたので確認した話,https://zenn.dev/hey_miii/articles/bf539d586c36f0,Copilotにこんな指摘をされました。<br>Tailwind の ! は末尾ではなく先頭につけるのが正しいので、そこも合わせて修正しています。<br>「え、そうなの？」と思って一瞬信じかけたんですが、<br>公式ドキュメントを確認したら違いました。<br><br> Copilot<br><br><br> 公式ドキュメント<br><br>つまり<br><br><br><br>Version<br>書き方<br><br><br><br><br>v3<br>!bg-red-500<br><br><br>v4<br>bg-red-500!（推奨）<br><br><br><br><br> 結論<br>Tailwind v4では ! はクラス名の末尾につけるのが推奨です。<br>Copilot、時々お茶目な間違いもするけど、優秀な助っ人なのは間違いない。<br>これからもよろしく。<br>ちなみ...,ZENN AI
 2026-03-11 18:43:26,AI間違いシリーズ：CopilotにTailwindの ! の位置を指摘されたので確認した話,https://zenn.dev/hey_miii/articles/bf539d586c36f0,"Copilotにこんな指摘をされました。
 Tailwind の ! は末尾ではなく先頭につけるのが正しいので、そこも合わせて修正しています。
 「え、そうなの？」と思って一瞬信じかけたんですが、
