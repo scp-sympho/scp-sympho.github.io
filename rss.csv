@@ -1,4 +1,5 @@
 date,title,link,description,source
+2026-04-05 10:33:00,OpenAIの“AGI担当CEO”シモ氏が療養休職　ライトキャップCOOが“特別プロジェクト”担当に,https://www.itmedia.co.jp/news/articles/2604/05/news019.html,OpenAIのAGI導入担当CEO、フィジ・シモ氏が、病気療養のため数週間休職すると発表した。休職中はグレッグ・ブロックマン社長が製品管理を代行する。また、ブラッド・ライトキャップCOOが特別プロジェクト担当の新職務へ異動し、CMOのケイト・ラウチ氏はがん治療のため辞任。ゲイリー・ブリッグス氏が暫定CMOに就任する。,ITmedia
 2026-04-05 07:42:00,「Claude」で「OpenClaw」などの利用がサブスク対象外に　API利用や追加使用量購入が必要,https://www.itmedia.co.jp/aiplus/articles/2604/05/news018.html,Anthropicは、「Claude」のサブスクリプションが「OpenClaw」等のサードパーティツール利用をカバーしなくなると告知した。需要増加に伴うリソース管理の適正化が目的としている。影響を受けるユーザーには、1回限りのクレジット付与や割引、希望者への全額返金で対応する。,ITmedia
 2026-04-03 19:23:00,IBMとArmが戦略的提携　AI対応でメインフレームの柔軟性確保へ,https://www.itmedia.co.jp/aiplus/articles/2604/03/news113.html,IBMとArmは、IBMのハードウェアでArmベースのソフトウェアを実行可能にすることを目指す戦略的提携を発表した。仮想化技術を拡張し、AIワークロードを含むArmエコシステムのミッションクリティカルシステムへの展開を図る。,ITmedia
 2026-04-03 18:47:00,新たな「国産LLM」公開、国立情報学研究所　「gpt-oss-20b」超えの日本語性能うたう,https://www.itmedia.co.jp/aiplus/articles/2604/03/news092.html,国立情報学研究所は、LLM「LLM-jp-4 8Bモデル」「LLM-jp-4 32B-A3Bモデル」をオープンソースライセンスで公開した。米OpenAIのオープンモデル「gpt-oss-20b」を上回る日本語性能をうたう。,ITmedia
