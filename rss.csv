@@ -1,4 +1,5 @@
 date,title,link,description,source
+2026-04-10 16:00:00,28年までに生成AIアプリの4分の1にセキュリティ事故、MCP普及でリスク拡大――Gartner予測,https://www.itmedia.co.jp/aiplus/articles/2604/10/news117.html,Gartnerは、2028年までに企業向け生成AIアプリケーションの25％がセキュリティインシデントを経験すると予測。MCPなどの規格がはらむリスクに対し、業務専門家を交えた厳格なガードレール定義と監視体制の構築が必要だと指摘した。,ITmedia
 2026-04-10 13:00:00,AIエージェントの「スキル」の品質低下を防ぐ？　テストと検証機能を強化,https://atmarkit.itmedia.co.jp/ait/articles/2604/10/news060.html,Anthropicは、AIアシスタント「Claude」の動作を拡張するAgent Skills作成ツール「skill-creator」に評価機能とベンチマーク機能を追加した。スキル作成者がコードを書かずにスキルの動作検証や品質を測定できるという。,ITmedia
 2026-04-10 13:00:00,無料で読めるAIエージェントの実践ガイド、Googleが公開　基礎から本番実装まで学べる,https://atmarkit.itmedia.co.jp/ait/articles/2604/10/news057.html,AIエージェントの基礎から本番実装まで学べる5つのガイドをGoogleが無償公開した。Kaggleと共同で実施した研修プログラムを基にした内容で、開発者の実務に直結する知識を習得できる。各ガイドが扱う内容とは。,ITmedia
 2026-04-10 11:50:00,「Claude Cowork」一般提供開始　全社導入を支える管理機能も,https://www.itmedia.co.jp/aiplus/articles/2604/10/news081.html,米Anthropicは、AIエージェント「Claude Cowork」の一般提供を全有料プランで開始した。同時にアクセス制御や支出制限などの企業向け管理機能も導入した。,ITmedia
